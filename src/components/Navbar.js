@@ -34,7 +34,7 @@ export default function Navbar() {
               Bilderfassung
             </h1>
             <p className="text-[10px] text-gray-300 uppercase tracking-widest">
-              Par Aubin Simo
+               Aubin Simo
             </p>
           </div>
         </Link>

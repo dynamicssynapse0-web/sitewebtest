@@ -1,15 +1,15 @@
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
+import ExclusivePortraits from '@/components/ExclusivePortraits';
 import { getAllEvents } from '@/lib/events';
+import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Home() {
   const evenements = getAllEvents();
-  const competitionsInternationales = evenements.filter(
-    (event) => event.international === true
-  );
+  const competitionsInternationales = getAllInternationalCompetitions();
   const sportifsDeLaSemaine = [
     {
       photo: '/images/aubin-simo-photographe-football-CAN2027.jpg',
@@ -60,7 +60,7 @@ export default function Home() {
 
         {/* COMPÉTITIONS INTERNATIONALES */}
         {competitionsInternationales.length > 0 && (
-          <section className="mb-20 overflow-hidden rounded-3xl bg-blue-950 p-6 text-white shadow-xl sm:p-8 lg:p-10">
+          <section id="competitions-internationales" className="mb-20 overflow-hidden rounded-3xl bg-blue-950 p-6 text-white shadow-xl sm:p-8 lg:p-10">
             <div className="mb-8 flex flex-col gap-4 border-b border-white/15 pb-6 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-red-400">
@@ -76,38 +76,35 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {competitionsInternationales.map((event) => (
+              {competitionsInternationales.map((competition) => (
                 <article
-                  key={event.slug}
+                  key={competition.slug}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-white text-gray-900"
                 >
                   <div className="relative h-56 sm:h-64">
                     <Image
-                      src={event.coverImage || '/images/placeholder.jpg'}
-                      alt={`Photo principale : ${event.title}`}
+                      src={competition.coverImage || '/images/placeholder.jpg'}
+                      alt={`Photo principale : ${competition.title}`}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover transition duration-500 hover:scale-[1.03]"
                     />
                     <span className="absolute left-4 top-4 rounded-full bg-blue-950/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
-                      {event.sport || 'Sport'}
+                      {competition.competition || competition.sport || 'Compétition'}
                     </span>
                   </div>
                   <div className="p-5 sm:p-6">
                     <h3 className="mb-2 text-xl font-bold text-blue-950">
-                      {event.title}
+                      {competition.title}
                     </h3>
                     <p className="mb-4 text-sm text-gray-500">
-                      {event.location}
-                      {event.date && !Number.isNaN(Date.parse(event.date))
-                        ? ` · ${new Date(event.date).toLocaleDateString('fr-FR')}`
-                        : ''}
+                      {competition.location} · {formatCompetitionDate(competition.date)}
                     </p>
                     <p className="mb-6 text-sm leading-6 text-gray-600">
-                      {event.content}
+                      {competition.content}
                     </p>
                     <Link
-                      href={`/evenements/${event.slug}`}
+                      href={`/competitions-internationales/${competition.slug}`}
                       className="inline-flex items-center gap-2 font-bold text-blue-900 transition hover:text-red-600"
                     >
                       Voir les images <span aria-hidden="true">→</span>
@@ -300,6 +297,8 @@ export default function Home() {
             Discutons de votre projet →
           </Link>
         </div>
+
+        <ExclusivePortraits />
 
       </div>
     </main>
