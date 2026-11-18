@@ -1,6 +1,6 @@
 ---
 title: "MTN Elite 2"
-date: "Saison 2026-2027"
+season: "2026-2027"
 time: "17h00"
 location: "ALL Stade"
 sport: "Football"

@@ -4,6 +4,7 @@ date: "2026-10-12"
 time: "20h00"
 location: "Stade Japoma, Douala"
 sport: "Football"
+international: true
 coverImage: "/images/aubin-simo-photographe-football-CAN2027.jpg"
 images:
   - "/images/aubin-simo-photographe-football-CAN2027.jpg"

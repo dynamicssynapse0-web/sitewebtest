@@ -1,10 +1,10 @@
 ---
 title: "MTN Elite One"
-date: "Saison 2026-2027"
+season: "2026-2027"
 time: "17h00"
 location: "ALL Stade"
 sport: "Football"
-coverImage: "/images/aubinsimokotto.jpg"
+coverImage: "/images/aubin-simo-reunification.jpg"
 images:
   - "/images/aubinsimocoton.jpg"
   - "/images/aubinsimoimages.jpg"

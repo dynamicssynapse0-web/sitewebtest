@@ -7,6 +7,9 @@ import Image from 'next/image';
 
 export default function Home() {
   const evenements = getAllEvents();
+  const competitionsInternationales = evenements.filter(
+    (event) => event.international === true
+  );
   const sportifsDeLaSemaine = [
     {
       photo: '/images/aubin-simo-photographe-football-CAN2027.jpg',
@@ -55,6 +58,67 @@ export default function Home() {
           </div>
         </div>
 
+        {/* COMPÉTITIONS INTERNATIONALES */}
+        {competitionsInternationales.length > 0 && (
+          <section className="mb-20 overflow-hidden rounded-3xl bg-blue-950 p-6 text-white shadow-xl sm:p-8 lg:p-10">
+            <div className="mb-8 flex flex-col gap-4 border-b border-white/15 pb-6 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-red-400">
+                  Sur la scène internationale
+                </p>
+                <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+                  Compétitions internationales
+                </h2>
+              </div>
+              <p className="max-w-md text-sm leading-6 text-blue-100/75">
+                Retrouvez les grands rendez-vous et les images qui racontent chaque rencontre.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {competitionsInternationales.map((event) => (
+                <article
+                  key={event.slug}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-white text-gray-900"
+                >
+                  <div className="relative h-56 sm:h-64">
+                    <Image
+                      src={event.coverImage || '/images/placeholder.jpg'}
+                      alt={`Photo principale : ${event.title}`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition duration-500 hover:scale-[1.03]"
+                    />
+                    <span className="absolute left-4 top-4 rounded-full bg-blue-950/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                      {event.sport || 'Sport'}
+                    </span>
+                  </div>
+                  <div className="p-5 sm:p-6">
+                    <h3 className="mb-2 text-xl font-bold text-blue-950">
+                      {event.title}
+                    </h3>
+                    <p className="mb-4 text-sm text-gray-500">
+                      {event.location}
+                      {event.date && !Number.isNaN(Date.parse(event.date))
+                        ? ` · ${new Date(event.date).toLocaleDateString('fr-FR')}`
+                        : ''}
+                    </p>
+                    <p className="mb-6 text-sm leading-6 text-gray-600">
+                      {event.content}
+                    </p>
+                    <Link
+                      href={`/evenements/${event.slug}`}
+                      className="inline-flex items-center gap-2 font-bold text-blue-900 transition hover:text-red-600"
+                    >
+                      Voir les images <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* 2. SECTION : DERNIERS ÉVÉNEMENTS */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
           <div>
@@ -101,7 +165,7 @@ export default function Home() {
     {[
       { src: '/images/aubin-simo-acceuil.jpg', alt: 'Joueur en pleine action' },
       { src: '/images/aubin-simo-getimages.jpg', alt: 'Moment fort d’un événement sportif' },
-      { src: '/images/photo-sport-3.jpg', alt: 'Célébration après un match' },
+      { src: '/images/aubin-basketball-fiba.jpg', alt: 'Action de basketball pendant un match' },
     ].map((photo) => (
       <div
         key={photo.src}

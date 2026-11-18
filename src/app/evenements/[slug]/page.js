@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import Gallery from '@/components/Gallery';
+import { formatEventDate } from '@/lib/events';
 
 // SEO
 export async function generateMetadata({ params }) {
@@ -57,7 +58,7 @@ export default async function EventPage({ params }) {
           <h1 className="text-4xl sm:text-6xl font-extrabold text-white mb-6">{data.title}</h1>
           <div className="flex flex-wrap gap-4 text-gray-200 text-sm sm:text-base mb-8">
             <span className="bg-yellow-500 text-black font-bold px-3 py-1 rounded-md">{data.sport}</span>
-            <p className="flex items-center gap-2">📅 {new Date(data.date).toLocaleDateString('fr-FR')} à {data.time}</p>
+            <p className="flex items-center gap-2">📅 {formatEventDate(data.date, data.season)} à {data.time}</p>
             <p className="flex items-center gap-2">📍 {data.location}</p>
           </div>
           <div className="text-gray-300 text-lg italic border-l-4 border-yellow-500 pl-4">
