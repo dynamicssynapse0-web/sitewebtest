@@ -1,5 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { pageMetadata } from '@/lib/seo';
+
+export const metadata = pageMetadata({
+  title: 'À propos',
+  description:
+    "Découvrez Bilderfassung et Aubin Simo, photographe sportif au Cameroun.",
+  path: '/a-propos',
+  image: '/images/aubin-simo-bilderfassung.jpg',
+});
 
 export default function APropos() {
   return (
@@ -9,10 +18,10 @@ export default function APropos() {
       <div className="bg-gradient-to-r from-blue-900 to-red-700 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <Link href="/" className="text-white/80 hover:text-white mb-6 inline-block font-medium transition">
-            ← Retour à l'accueil
+            ← Retour à l&apos;accueil
           </Link>
           <h1 className="text-4xl sm:text-6xl font-extrabold mb-2">Bilderfassung</h1>
-          <p className="text-xl text-white/90">L'œil du sport par Aubin Simo</p>
+          <p className="text-xl text-white/90">L&apos;œil du sport par Aubin Simo</p>
         </div>
       </div>
 
@@ -38,11 +47,11 @@ export default function APropos() {
             
             <div className="space-y-4 text-gray-700 text-lg leading-relaxed">
               <p>
-                Derrière l'objectif de <strong>Bilderfassung</strong>, il y a <strong>Aubin Simo</strong>, un passionné de sport et de photographie. 
-                Mon but est de capturer l'intensité, l'émotion et la beauté brute des événements sportifs.
+                Derrière l&apos;objectif de <strong>Bilderfassung</strong>, il y a <strong>Aubin Simo</strong>, un passionné de sport et de photographie. 
+                Mon but est de capturer l&apos;intensité, l&apos;émotion et la beauté brute des événements sportifs.
               </p>
               <p>
-                Du football au basketball en passant par l'athlétisme, je parcours les terrains et les stades pour vous faire revivre 
+                Du football au basketball en passant par l&apos;athlétisme, je parcours les terrains et les stades pour vous faire revivre 
                 les meilleurs moments. Chaque match est une histoire, chaque photo est un souvenir figé.
               </p>
               <p>

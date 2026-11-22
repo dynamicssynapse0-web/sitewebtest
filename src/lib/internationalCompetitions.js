@@ -30,6 +30,11 @@ export function formatCompetitionDate(date) {
   return new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR');
 }
 
+/**
+ * @typedef {{ slug: string, date?: string, competition?: string, content: string, [key: string]: any }} Competition
+ */
+
+/** @returns {Competition[]} */
 export function getAllInternationalCompetitions() {
   if (!fs.existsSync(competitionsDirectory)) return [];
 

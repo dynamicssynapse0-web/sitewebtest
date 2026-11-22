@@ -3,15 +3,17 @@ import Image from 'next/image';
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
+import { pageMetadata } from '@/lib/seo';
 
 // SEO dynamique
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const nomSport = slug.charAt(0).toUpperCase() + slug.slice(1);
-  return {
-    title: `Photographies de ${nomSport} | Aubin Simo`,
+  return pageMetadata({
+    title: `Photographies de ${nomSport}`,
     description: `Découvrez mes meilleures photos de ${nomSport} par événement.`,
-  };
+    path: `/sports/${slug}`,
+  });
 }
 
 // Récupération des événements (version robuste)
@@ -71,7 +73,7 @@ export default async function SportPage({ params }) {
 
         {evenements.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 p-10 rounded-2xl text-center">
-            <p className="text-white text-lg">Aucun événement {nomSport} n'a été publié pour le moment.</p>
+            <p className="text-white text-lg">Aucun événement {nomSport} n&apos;a été publié pour le moment.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

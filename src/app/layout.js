@@ -1,12 +1,44 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  DEFAULT_OG_IMAGE,
+} from '@/lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const siteTitle = `${SITE_NAME} | Aubin Simo - Photographe Sportif`;
+
 export const metadata = {
-  title: 'Bilderfassung | Aubin Simo - Photographe Sportif',
-  description: "L'œil du sport par Aubin Simo. Découvrez mes photographies d'événements sportifs au Cameroun.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: siteTitle, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_FR',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: siteTitle,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        alt: 'Photographie sportive par Aubin Simo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitle,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }) {

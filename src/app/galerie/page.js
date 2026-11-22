@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAllEvents } from '@/lib/events';
+import { pageMetadata } from '@/lib/seo';
+
+export const metadata = pageMetadata({
+  title: 'Galerie photos',
+  description:
+    'Les plus belles photographies sportives d’Aubin Simo, réunies dans une seule galerie.',
+  path: '/galerie',
+  image: '/images/aubin-simo-getimages.jpg',
+});
 
 export default function Galerie() {
   const evenements = getAllEvents();
@@ -21,7 +30,7 @@ export default function Galerie() {
       <div className="bg-black text-white py-16 px-4 border-b border-gray-800">
         <div className="max-w-7xl mx-auto">
           <Link href="/" className="text-gray-400 hover:text-white mb-6 inline-block font-medium transition">
-            ← Retour à l'accueil
+            ← Retour à l&apos;accueil
           </Link>
           <h1 className="text-4xl sm:text-6xl font-extrabold mb-4">Galerie</h1>
           <p className="text-gray-400 text-lg max-w-2xl">
@@ -52,7 +61,7 @@ export default function Galerie() {
                     <p className="text-yellow-500 text-sm font-bold mb-1 uppercase tracking-wider">Événement</p>
                     <p className="text-white font-bold text-lg">{img.titre}</p>
                     <Link href={`/evenements/${img.evenementSlug}`} className="text-gray-300 text-sm underline mt-2 block">
-                      Voir l'événement →
+                      Voir l&apos;événement →
                     </Link>
                   </div>
                 </div>

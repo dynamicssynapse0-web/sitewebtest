@@ -4,6 +4,7 @@ import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
+import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -83,7 +84,7 @@ export default function Home() {
                 >
                   <div className="relative h-56 sm:h-64">
                     <Image
-                      src={competition.coverImage || '/images/placeholder.jpg'}
+                      src={competition.coverImage || DEFAULT_OG_IMAGE}
                       alt={`Photo principale : ${competition.title}`}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -262,7 +263,7 @@ export default function Home() {
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-blue-900 mb-4">Pourquoi travailler avec Bilderfassung ?</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Je ne fais pas que prendre des photos, je capture l'émotion et l'intensité de l'instant pour que chaque souvenir soit inoubliable.</p>
+            <p className="text-gray-600 max-w-2xl mx-auto">Je ne fais pas que prendre des photos, je capture l&apos;émotion et l&apos;intensité de l&apos;instant pour que chaque souvenir soit inoubliable.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -274,12 +275,12 @@ export default function Home() {
             <div className="text-center">
               <div className="bg-red-50 text-red-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">⚡</div>
               <h3 className="font-bold text-lg mb-2">Réactivité & Passion</h3>
-              <p className="text-gray-600 text-sm">Je suis au plus près de l'action pour ne jamais rater le moment décisif, avec une livraison rapide.</p>
+              <p className="text-gray-600 text-sm">Je suis au plus près de l&apos;action pour ne jamais rater le moment décisif, avec une livraison rapide.</p>
             </div>
             <div className="text-center">
               <div className="bg-blue-50 text-blue-900 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">🤝</div>
               <h3 className="font-bold text-lg mb-2">Sur Mesure</h3>
-              <p className="text-gray-600 text-sm">Chaque événement est unique. Je m'adapte à vos besoins pour vous fournir exactement ce que vous cherchez.</p>
+              <p className="text-gray-600 text-sm">Chaque événement est unique. Je m&apos;adapte à vos besoins pour vous fournir exactement ce que vous cherchez.</p>
             </div>
           </div>
         </div>
@@ -288,7 +289,7 @@ export default function Home() {
         <div className="bg-gradient-to-r from-blue-900 to-red-700 rounded-3xl p-10 md:p-16 text-center text-white shadow-xl">
           <h2 className="text-3xl md:text-5xl font-extrabold mb-6">Vous organisez un événement sportif ?</h2>
           <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Ne laissez pas les meilleurs moments s'échapper. Engagez un photographe passionné pour immortaliser votre événement.
+            Ne laissez pas les meilleurs moments s&apos;échapper. Engagez un photographe passionné pour immortaliser votre événement.
           </p>
           <Link 
             href="/contact" 

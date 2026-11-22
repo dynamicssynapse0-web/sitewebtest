@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { formatEventDate } from '@/lib/events';
+import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 export default function EventCard({ event }) {
   const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(event.date || '')
@@ -12,7 +13,7 @@ export default function EventCard({ event }) {
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition duration-300 cursor-pointer">
         <div className="relative h-48">
           <img
-            src={event.coverImage || '/images/placeholder.jpg'}
+            src={event.coverImage || DEFAULT_OG_IMAGE}
             alt={event.title}
             className="w-full h-full object-cover"
           />

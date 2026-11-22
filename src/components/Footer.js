@@ -20,7 +20,7 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-gray-300 mb-6 text-sm leading-relaxed">
-              L'œil du sport par Aubin Simo. Capturer l'intensité, l'émotion et la beauté brute des événements sportifs à travers mon objectif.
+              L&apos;œil du sport par Aubin Simo. Capturer l&apos;intensité, l&apos;émotion et la beauté brute des événements sportifs à travers mon objectif.
             </p>
             <div className="flex gap-4">
               

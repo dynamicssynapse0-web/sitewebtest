@@ -5,18 +5,25 @@ import path from 'path';
 import matter from 'gray-matter';
 import Gallery from '@/components/Gallery';
 import { formatEventDate } from '@/lib/events';
+import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 // SEO
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const filePath = path.join(process.cwd(), 'content/events', `${slug}.md`);
-  if (!fs.existsSync(filePath)) return { title: 'Événement non trouvé' };
+  if (!fs.existsSync(filePath)) {
+    return { title: 'Événement non trouvé', robots: { index: false } };
+  }
   const fileContents = fs.readFileSync(filePath, 'utf8');
-  const { data } = matter(fileContents);
-  return {
-    title: `${data.title} | Aubin Simo`,
-    description: `Découvrez les photos de l'événement ${data.title} à ${data.location}.`,
-  };
+  const { data, content } = matter(fileContents);
+  return pageMetadata({
+    title: data.title,
+    description:
+      content?.trim() ||
+      `Découvrez les photos de l'événement ${data.title} à ${data.location}.`,
+    path: `/evenements/${slug}`,
+    image: data.coverImage,
+  });
 }
 
 export default async function EventPage({ params }) {
@@ -36,7 +43,7 @@ export default async function EventPage({ params }) {
       {/* 1. L'IMAGE DE FOND (celle du fichier .md) */}
       <div className="fixed inset-0 -z-20">
         <Image
-          src={data.coverImage || "/images/placeholder.jpg"}
+          src={data.coverImage || DEFAULT_OG_IMAGE}
           alt="Fond d'écran"
           fill
           className="object-cover"
@@ -62,7 +69,7 @@ export default async function EventPage({ params }) {
             <p className="flex items-center gap-2">📍 {data.location}</p>
           </div>
           <div className="text-gray-300 text-lg italic border-l-4 border-yellow-500 pl-4">
-            <p>"{content}"</p>
+            <p>&quot;{content}&quot;</p>
           </div>
         </header>
 

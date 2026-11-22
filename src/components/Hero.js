@@ -14,7 +14,7 @@ export default function Hero() {
           Bilder <span className="text-white">Fassung</span>
         </h2>
         <p className="text-xl text-gray-100 mb-8 max-w-2xl mx-auto">
-          L'œil du sport par Aubin Simo
+          L&apos;œil du sport par Aubin Simo
         </p>
         <Link 
           href="#evenements" 

@@ -1,40 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { listeSports } from '@/lib/sports';
+import { pageMetadata } from '@/lib/seo';
 
-const listeSports = [
-  {
-    nom: "Football",
-    slug: "football",
-    icone: "⚽",
-    description: "Matchs de championnat, coupes nationales et rencontres internationales.",
-    image: "/images/aubin-simo-photographe-football-CAN2027.jpg",
-    alt: "Aubin Simo photographiant un match de football – CAN 2027",
-  },
-  {
-    nom: "Basketball",
-    slug: "basketball",
-    icone: "🏀",
-    description: "Ambiance des salles, dunks et tirs à 3 points.",
-    image: "/images/aubin-basketball-fiba.jpg",
-    alt: "Aubin Simo – photographie de basketball",
-  },
-  {
-    nom: "Athlétisme",
-    slug: "athletisme",
-    icone: "🏃",
-    description: "Courses, sauts et moments de pure intensité sur la piste.",
-    image: "/images/aubin-simo-photographe-football-CAN2027.jpg",
-    alt: "Aubin Simo – photographie d'athlétisme",
-  },
-  {
-    nom: "Boxe",
-    slug: "boxe",
-    icone: "🥊",
-    description: "Combats sur le ring, techniques et moments forts.",
-    image: "/images/aubin-simo-photographe-football-CAN2027.jpg",
-    alt: "Aubin Simo – photographie de boxe",
-  },
-];
+export const metadata = pageMetadata({
+  title: 'Sports',
+  description:
+    'Football, basketball, athlétisme et boxe : découvrez les disciplines couvertes par Aubin Simo.',
+  path: '/sports',
+});
 
 export default function Sports() {
   return (
@@ -59,7 +33,7 @@ export default function Sports() {
         
         {/* LE BOUTON EST MAINTENANT ICI */}
         <Link href="/" className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition mb-8 font-medium">
-          ← Retour à l'accueil
+          ← Retour à l&apos;accueil
         </Link>
 
         <header className="max-w-2xl mb-10 sm:mb-14">

@@ -7,6 +7,7 @@ import {
   getAllInternationalCompetitions,
   getInternationalCompetitionBySlug,
 } from '@/lib/internationalCompetitions';
+import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 export function generateStaticParams() {
   return getAllInternationalCompetitions().map((competition) => ({
@@ -18,12 +19,16 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const competition = getInternationalCompetitionBySlug(slug);
 
-  if (!competition) return { title: 'Compétition introuvable' };
+  if (!competition) {
+    return { title: 'Compétition introuvable', robots: { index: false } };
+  }
 
-  return {
-    title: `${competition.title} | Bilderfassung`,
+  return pageMetadata({
+    title: competition.title,
     description: competition.content,
-  };
+    path: `/competitions-internationales/${slug}`,
+    image: competition.coverImage,
+  });
 }
 
 export default async function InternationalCompetitionPage({ params }) {
@@ -36,7 +41,7 @@ export default async function InternationalCompetitionPage({ params }) {
     <main className="min-h-screen bg-blue-950 pb-20">
       <div className="relative h-[42vh] min-h-[320px] max-h-[560px]">
         <Image
-          src={competition.coverImage || '/images/placeholder.jpg'}
+          src={competition.coverImage || DEFAULT_OG_IMAGE}
           alt={`Photo principale : ${competition.title}`}
           fill
           priority

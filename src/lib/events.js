@@ -23,6 +23,11 @@ export function formatEventDate(date, season) {
   return 'Date à confirmer';
 }
 
+/**
+ * @typedef {{ slug: string, date?: string, season?: string, content: string, [key: string]: any }} Event
+ */
+
+/** @returns {Event[]} */
 export function getAllEvents() {
   // On vérifie si le dossier existe
   if (!fs.existsSync(eventsDirectory)) {

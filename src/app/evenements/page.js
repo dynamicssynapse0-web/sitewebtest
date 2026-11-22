@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAllEvents } from '@/lib/events';
+import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
+
+export const metadata = pageMetadata({
+  title: 'Événements',
+  description:
+    'Toutes les couvertures photographiques d’événements sportifs réalisées par Aubin Simo.',
+  path: '/evenements',
+  image: '/images/aubin-simo-annexe.jpg',
+});
 
 export default function Evenements() {
   const evenements = getAllEvents();
@@ -12,11 +21,11 @@ export default function Evenements() {
       <div className="bg-gradient-to-r from-blue-900 to-red-700 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <Link href="/" className="text-white/80 hover:text-white mb-6 inline-block font-medium transition">
-            ← Retour à l'accueil
+            ← Retour à l&apos;accueil
           </Link>
           <h1 className="text-4xl sm:text-6xl font-extrabold mb-4">Tous les événements</h1>
           <p className="text-xl text-white/90">
-            Retrouvez tous les matchs et événements que j'ai couverts.
+            Retrouvez tous les matchs et événements que j&apos;ai couverts.
           </p>
         </div>
       </div>
@@ -34,7 +43,7 @@ export default function Evenements() {
                   {/* Photo de couverture */}
                   <div className="relative h-56 w-full bg-gray-200">
                     <Image
-                      src={event.coverImage || "/images/placeholder.jpg"}
+                      src={event.coverImage || DEFAULT_OG_IMAGE}
                       alt={event.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"

@@ -14,7 +14,7 @@ export default function Hero() {
           Bilder<span className="text-red-500">fassung</span>
         </h2>
         <p className="text-xl md:text-2xl text-gray-100 mb-8 max-w-2xl mx-auto drop-shadow-md font-medium">
-          L'œil du sport par Aubin Simo
+          L&apos;œil du sport par Aubin Simo
         </p>
         <Link 
           href="#evenements" 

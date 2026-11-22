@@ -1,3 +1,12 @@
+import { pageMetadata } from '@/lib/seo';
+
+export const metadata = pageMetadata({
+  title: 'Contact',
+  description:
+    'Contactez Aubin Simo pour couvrir votre événement sportif à Douala ou ailleurs au Cameroun.',
+  path: '/contact',
+});
+
 export default function Contact() {
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
@@ -6,7 +15,7 @@ export default function Contact() {
       <div className="bg-gradient-to-r from-blue-900 to-red-700 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">Contactez-moi</h1>
-          <p className="text-lg text-white/90">Une question, un projet d'événement ? Discutons-en.</p>
+          <p className="text-lg text-white/90">Une question, un projet d&apos;événement ? Discutons-en.</p>
         </div>
       </div>
 

@@ -7,7 +7,7 @@ export default function Navbar() {
         <span className="text-2xl">🏃</span>
         <div>
           <h1 className="font-bold text-xl leading-tight">Bilderfassung</h1>
-          <p className="text-xs text-gray-400">Toute l'actualité sportive en un seul endroit</p>
+          <p className="text-xs text-gray-400">Toute l&apos;actualité sportive en un seul endroit</p>
         </div>
       </div>
       <div className="hidden md:flex gap-6 text-sm font-medium">
