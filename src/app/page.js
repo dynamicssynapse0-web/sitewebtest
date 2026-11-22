@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
+import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
@@ -11,26 +12,6 @@ import Image from 'next/image';
 export default function Home() {
   const evenements = getAllEvents();
   const competitionsInternationales = getAllInternationalCompetitions();
-  const sportifsDeLaSemaine = [
-    {
-      photo: '/images/aubin-simo-photographe-football-CAN2027.jpg',
-      alt: 'Sportif en action pendant un match de football',
-      sport: 'Football',
-      commentaire: 'Détermination, concentration et passion jusqu’au coup de sifflet final.',
-    },
-    {
-      photo: '/images/aubin-basketball-fiba.jpg',
-      alt: 'Action de basketball en match',
-      sport: 'Basketball',
-      commentaire: 'Un bel exemple d’énergie et d’engagement sur le terrain.',
-    },
-    {
-      photo: '/images/AUBINSIMO-MTN.jpg',
-      alt: 'Joueur pendant une rencontre de football',
-      sport: 'Football',
-      commentaire: 'Le talent se révèle aussi dans les efforts et le travail d’équipe.',
-    },
-  ];
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -182,82 +163,7 @@ export default function Home() {
   </div>
 </section>
 
-        {/* SPORTIFS DE LA SEMAINE */}
-        <section className="mb-20 rounded-3xl bg-blue-950 p-6 text-white shadow-xl sm:p-8 lg:p-10">
-          <div className="mb-8 flex flex-col gap-5 border-b border-white/15 pb-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-red-400">
-                Le rendez-vous hebdomadaire
-              </p>
-              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Les sportifs de la semaine
-              </h2>
-            </div>
-            <p className="max-w-md text-sm leading-6 text-blue-100/75">
-              Des images fortes et des mots simples pour mettre en lumière celles et ceux qui font vivre le sport.
-            </p>
-          </div>
-
-          {sportifsDeLaSemaine.length > 0 && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-              {sportifsDeLaSemaine.slice(0, 1).map((sportif) => (
-                <article
-                  key={sportif.photo}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-white lg:col-span-7"
-                >
-                  <div className="relative h-72 sm:h-[420px]">
-                    <Image
-                      src={sportif.photo}
-                      alt={sportif.alt}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 58vw"
-                      className="object-cover transition duration-500 hover:scale-[1.02]"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
-                    <span className="absolute left-5 top-5 rounded-full bg-red-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
-                      À la une
-                    </span>
-                  </div>
-                  <div className="p-5 text-gray-900 sm:p-7">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600">
-                      {sportif.sport}
-                    </p>
-                    <p className="text-lg font-medium leading-relaxed sm:text-xl">
-                      {sportif.commentaire}
-                    </p>
-                  </div>
-                </article>
-              ))}
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
-                {sportifsDeLaSemaine.slice(1, 3).map((sportif) => (
-                  <article
-                    key={sportif.photo}
-                    className="overflow-hidden rounded-2xl border border-white/10 bg-white"
-                  >
-                    <div className="relative h-52 sm:h-60 lg:h-48">
-                      <Image
-                        src={sportif.photo}
-                        alt={sportif.alt}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 38vw"
-                        className="object-cover transition duration-500 hover:scale-[1.02]"
-                      />
-                    </div>
-                    <div className="p-5 text-gray-900">
-                      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600">
-                        {sportif.sport}
-                      </p>
-                      <p className="leading-relaxed text-gray-700">
-                        {sportif.commentaire}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
+        <SportifsDeLaSemaine />
 
         {/* 3. SECTION : POURQUOI ME CHOISIR ? */}
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 mb-16">
