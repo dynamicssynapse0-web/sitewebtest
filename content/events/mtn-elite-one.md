@@ -10,6 +10,8 @@ images:
   - "/images/aubinsimoimages.jpg"
   - "/images/aubinsimokotto.jpg"
   - "/images/AUBINSIMO-MTN.jpg"
+   - "/images/aubin-simo-dynamo.jpg"
+  
 ---
 
 Un match de championnat de MTN Elite One avec une ambiance de folie dans les tribunes.
