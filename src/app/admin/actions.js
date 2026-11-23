@@ -3,6 +3,7 @@
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { decodeMaybeJson, slugify } from '@/lib/supabase/records';
+import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 
 const ALLOWED_TABLES = new Set([
@@ -19,6 +20,10 @@ const IMAGE_COLUMNS = [
   'photos',
   'image_urls',
 ];
+
+function failure(error) {
+  return { ok: false, error: errorText(error) };
+}
 
 async function requireAdmin() {
   const context = await getAdminContext();
@@ -42,28 +47,6 @@ function cleanRow(row) {
       ([, value]) => value !== undefined && value !== null && value !== ''
     )
   );
-}
-
-async function writeRow(table, row) {
-  if (!ALLOWED_TABLES.has(table)) throw new Error('Table non autorisée.');
-
-  const supabase = await requireAdmin();
-  const payload = cleanRow({
-    ...row,
-    slug: slugify(row.slug || row.title) || row.slug || null,
-  });
-
-  const result = row.id
-    ? await supabase
-        .from(table)
-        .update(payload)
-        .eq('id', row.id)
-        .select()
-        .single()
-    : await supabase.from(table).insert(payload).select().single();
-
-  if (result.error) throw new Error(result.error.message);
-  return result.data;
 }
 
 function collectSources(row) {
@@ -150,57 +133,92 @@ async function removeUnusedMedia(supabase, sources) {
   return paths;
 }
 
-async function removeRow(table, id) {
-  if (!ALLOWED_TABLES.has(table) || !id) {
-    throw new Error('Suppression impossible.');
-  }
-
-  const supabase = await requireAdmin();
-
-  // Capture des sources avant la suppression de la ligne.
-  const sources = await getMediaSources(supabase, table, id);
-
-  const { error } = await supabase.from(table).delete().eq('id', id);
-  if (error) throw new Error(error.message);
-
-  // Nettoyage Storage après la suppression : un échec ici ne doit pas annuler
-  // une suppression déjà effectuée (seuls des fichiers orphelins resteraient).
-  let removedMedia = [];
+async function saveItem(table, row) {
   try {
-    removedMedia = await removeUnusedMedia(supabase, sources);
-  } catch {
-    removedMedia = [];
-  }
+    if (!ALLOWED_TABLES.has(table)) throw new Error('Table non autorisée.');
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      throw new Error('Données invalides.');
+    }
 
-  return { id, removedMedia };
+    const supabase = await requireAdmin();
+    const plainRow = toPlainJson(row);
+    const payload = cleanRow({
+      ...plainRow,
+      slug: slugify(plainRow.slug || plainRow.title) || plainRow.slug || null,
+    });
+
+    const result = plainRow.id
+      ? await supabase
+          .from(table)
+          .update(payload)
+          .eq('id', plainRow.id)
+          .select()
+          .single()
+      : await supabase.from(table).insert(payload).select().single();
+
+    if (result.error) throw new Error(result.error.message);
+
+    return { ok: true, data: toPlainJson(result.data) };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+async function deleteItem(table, id) {
+  try {
+    if (!ALLOWED_TABLES.has(table) || !id) {
+      throw new Error('Suppression impossible.');
+    }
+
+    const supabase = await requireAdmin();
+
+    // Capture des sources avant la suppression de la ligne.
+    const sources = await getMediaSources(supabase, table, id);
+
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) throw new Error(error.message);
+
+    // Nettoyage Storage après la suppression : un échec ici ne doit pas annuler
+    // une suppression déjà effectuée (seuls des fichiers orphelins resteraient).
+    let removedMedia = [];
+    try {
+      removedMedia = await removeUnusedMedia(supabase, sources);
+    } catch {
+      removedMedia = [];
+    }
+
+    return { ok: true, id: toPlainJson(id), removedMedia };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function saveArticle(row) {
   if (!['event', 'international'].includes(row?.type)) {
-    throw new Error('Type d’article invalide.');
+    return failure(new Error('Type d’article invalide.'));
   }
-  return writeRow('articles', row);
+  return saveItem('articles', row);
 }
 
 export async function deleteArticle(id) {
-  return removeRow('articles', id);
+  return deleteItem('articles', id);
 }
 
 export async function saveSportif(row) {
-  return writeRow('sportifs_semaine', row);
+  return saveItem('sportifs_semaine', row);
 }
 
 export async function deleteSportif(id) {
-  return removeRow('sportifs_semaine', id);
+  return deleteItem('sportifs_semaine', id);
 }
 
 export async function saveVitrine(row) {
   if (!['moment_fort', 'portrait_exclusif'].includes(row?.section)) {
-    throw new Error('Section de vitrine invalide.');
+    return failure(new Error('Section de vitrine invalide.'));
   }
-  return writeRow('vitrine_items', row);
+  return saveItem('vitrine_items', row);
 }
 
 export async function deleteVitrine(id) {
-  return removeRow('vitrine_items', id);
+  return deleteItem('vitrine_items', id);
 }

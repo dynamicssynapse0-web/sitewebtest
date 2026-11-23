@@ -14,6 +14,7 @@ import {
   normalizeImages,
   toIsoDate,
 } from '@/lib/supabase/records';
+import { safeText } from '@/lib/supabase/serialization';
 import { listeSports } from '@/lib/sports';
 import {
   deleteArticle,
@@ -111,22 +112,33 @@ function emptyForm(section) {
 }
 
 function rowToForm(section, row) {
+  const safeRow =
+    row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
   const images = normalizeImages(
-    decodeMaybeJson(row.images ?? row.image ?? row.image_url),
-    row.title || 'Photo'
+    decodeMaybeJson(safeRow.images ?? safeRow.image ?? safeRow.image_url),
+    safeText(safeRow.title) || 'Photo'
   );
 
   section.fields.forEach((field) => {
-    const raw = row[field.name];
+    const raw = safeRow[field.name];
     if (field.type === 'date') form[field.name] = toIsoDate(raw);
     else if (field.type === 'checkbox') {
-      form[field.name] = raw === true || ['true', '1', 'oui'].includes(String(raw ?? '').toLowerCase());
+      form[field.name] =
+        raw === true ||
+        ['true', '1', 'oui'].includes(String(raw ?? '').toLowerCase());
     } else if (field.type === 'number') form[field.name] = Number(raw) || 0;
-    else form[field.name] = raw ?? '';
+    else if (raw !== null && typeof raw === 'object') {
+      form[field.name] = JSON.stringify(raw);
+    } else form[field.name] = raw ?? '';
   });
 
-  return { ...form, id: row.id ?? null, _images: images, _alt: images[0]?.alt || '' };
+  return {
+    ...form,
+    id: safeRow.id ?? null,
+    _images: images,
+    _alt: images[0]?.alt || '',
+  };
 }
 
 function actionsFor(key) {
@@ -139,12 +151,17 @@ function actionsFor(key) {
 
 function itemSubtitle(section, row) {
   if (section.key === 'sportif') {
-    return [row.player_name, row.position, row.competition].filter(Boolean).join(' — ');
+    return [row.player_name, row.position, row.competition]
+      .map(safeText)
+      .filter(Boolean)
+      .join(' — ');
   }
   if (section.key === 'moment_fort' || section.key === 'portrait_exclusif') {
-    return [row.subtitle, row.ordre ? `Ordre ${row.ordre}` : ''].filter(Boolean).join(' — ');
+    return [safeText(row.subtitle), row.ordre ? `Ordre ${safeText(row.ordre)}` : '']
+      .filter(Boolean)
+      .join(' — ');
   }
-  return [row.date, row.location].filter(Boolean).join(' · ');
+  return [row.date, row.location].map(safeText).filter(Boolean).join(' · ');
 }
 
 function FieldInput({ field, value, onChange }) {
@@ -363,14 +380,20 @@ export default function AdminDashboard({ email, uploadTimestamp, initial }) {
 
       const saved = await save(payload);
 
+      if (!saved?.ok) {
+        setError(saved?.error || 'Enregistrement impossible.');
+        return;
+      }
+
+      const record = saved.data || {};
       setItems((previous) => {
         const list = previous[activeSection.key] || [];
-        const exists = list.some((row) => row.id === saved.id);
+        const exists = list.some((row) => row.id === record.id);
         return {
           ...previous,
           [activeSection.key]: exists
-            ? list.map((row) => (row.id === saved.id ? saved : row))
-            : [saved, ...list],
+            ? list.map((row) => (row.id === record.id ? record : row))
+            : [record, ...list],
         };
       });
 
@@ -395,7 +418,13 @@ export default function AdminDashboard({ email, uploadTimestamp, initial }) {
 
     try {
       const { remove } = actionsFor(section.key);
-      await remove(row.id);
+      const result = await remove(row.id);
+
+      if (!result?.ok) {
+        setError(result?.error || 'Suppression impossible.');
+        return;
+      }
+
       setItems((previous) => ({
         ...previous,
         [section.key]: (previous[section.key] || []).filter(
@@ -527,7 +556,7 @@ export default function AdminDashboard({ email, uploadTimestamp, initial }) {
                     >
                       <div className="min-w-0">
                         <p className="break-words font-bold text-blue-950">
-                          {row.title || 'Sans titre'}
+                          {safeText(row.title) || 'Sans titre'}
                         </p>
                         <p className="mt-1 break-words text-xs text-gray-500">
                           {itemSubtitle(activeSection, row)}

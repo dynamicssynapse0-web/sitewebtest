@@ -4,20 +4,66 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import LogoutButton from '@/components/admin/LogoutButton';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
 import { getUploadTimestamp } from '@/lib/upload';
+
+const EMPTY_ITEMS = {
+  event: [],
+  international: [],
+  sportif: [],
+  moment_fort: [],
+  portrait_exclusif: [],
+};
 
 async function fetchRows(supabase, table, filters = {}, order) {
   if (!supabase) return [];
 
-  let query = supabase.from(table).select('*');
-  Object.entries(filters).forEach(([column, value]) => {
-    query = query.eq(column, value);
-  });
-  if (order) query = query.order(order, { ascending: true });
+  try {
+    let query = supabase.from(table).select('*');
+    Object.entries(filters).forEach(([column, value]) => {
+      query = query.eq(column, value);
+    });
+    if (order) query = query.order(order, { ascending: true });
 
-  const { data, error } = await query;
-  if (error) return [];
-  return data ?? [];
+    const { data, error } = await query;
+    if (error || !Array.isArray(data)) return [];
+
+    return toPlainRows(data);
+  } catch {
+    // Table ou colonne manquante : la rubrique s'affiche simplement vide.
+    return [];
+  }
+}
+
+async function fetchAllItems() {
+  try {
+    const supabase = await getServerSupabase();
+    if (!supabase) return EMPTY_ITEMS;
+
+    const [events, internationals, sportifs, moments, portraits] =
+      await Promise.all([
+        fetchRows(supabase, 'articles', { type: 'event' }, 'date'),
+        fetchRows(supabase, 'articles', { type: 'international' }, 'date'),
+        fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
+        fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
+        fetchRows(
+          supabase,
+          'vitrine_items',
+          { section: 'portrait_exclusif' },
+          'ordre'
+        ),
+      ]);
+
+    return {
+      event: events,
+      international: internationals,
+      sportif: sportifs,
+      moment_fort: moments,
+      portrait_exclusif: portraits,
+    };
+  } catch {
+    return EMPTY_ITEMS;
+  }
 }
 
 export default async function AdminPage() {
@@ -72,26 +118,14 @@ export default async function AdminPage() {
     );
   }
 
-  const supabase = await getServerSupabase();
-  const [events, internationals, sportifs, moments, portraits] = await Promise.all([
-    fetchRows(supabase, 'articles', { type: 'event' }, 'date'),
-    fetchRows(supabase, 'articles', { type: 'international' }, 'date'),
-    fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
-    fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
-    fetchRows(supabase, 'vitrine_items', { section: 'portrait_exclusif' }, 'ordre'),
-  ]);
+  const initial = await fetchAllItems();
+  const timestamp = getUploadTimestamp();
 
   return (
     <AdminDashboard
-      email={context.user?.email || ''}
-      uploadTimestamp={getUploadTimestamp()}
-      initial={{
-        event: events,
-        international: internationals,
-        sportif: sportifs,
-        moment_fort: moments,
-        portrait_exclusif: portraits,
-      }}
+      email={safeText(context.user?.email)}
+      uploadTimestamp={Number.isFinite(timestamp) ? timestamp : 0}
+      initial={toPlainJson(initial)}
     />
   );
 }

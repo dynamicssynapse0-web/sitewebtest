@@ -1,5 +1,6 @@
 import { getServerSupabase, getServerUser } from './server';
 import { isSupabaseConfigured } from './config';
+import { safeText, toPlainJson } from './serialization';
 
 const configuredTables = [
   process.env.NEXT_PUBLIC_SUPABASE_USERS_TABLE,
@@ -63,14 +64,18 @@ async function findUserProfile(supabase, user) {
 
   for (const table of [...new Set(USER_TABLE_CANDIDATES)]) {
     for (const { column, value } of candidates) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq(column, value)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from(table)
+          .select('*')
+          .eq(column, value)
+          .maybeSingle();
 
-      if (!error && data) {
-        return { profile: data, table, column };
+        if (!error && data) {
+          return { profile: toPlainJson(data), table, column };
+        }
+      } catch {
+        // Table ou colonne absente : on essaie le candidat suivant.
       }
     }
   }
@@ -83,24 +88,32 @@ export async function getAdminContext() {
     return { configured: false, authenticated: false, authorized: false };
   }
 
-  const user = await getServerUser();
-  if (!user) {
+  try {
+    const user = await getServerUser();
+    if (!user) {
+      return { configured: true, authenticated: false, authorized: false };
+    }
+
+    const supabase = await getServerSupabase();
+    const match = supabase ? await findUserProfile(supabase, user) : null;
+    const profile = match?.profile ?? null;
+    const authorized = isAdminProfile(profile);
+
+    return {
+      configured: true,
+      authenticated: true,
+      authorized,
+      user: toPlainJson(user),
+      profile: toPlainJson(profile),
+      usersTable: safeText(match?.table),
+      // Toujours des chaînes : ces valeurs sont rendues directement en JSX.
+      role: safeText(readField(profile, ['role', 'rôle', 'niveau', 'type'])),
+      statut: safeText(
+        readField(profile, ['statut', 'status', 'etat', 'état', 'active'])
+      ),
+    };
+  } catch {
+    // Une panne Supabase ne doit jamais produire un 500 sur /admin.
     return { configured: true, authenticated: false, authorized: false };
   }
-
-  const supabase = await getServerSupabase();
-  const match = supabase ? await findUserProfile(supabase, user) : null;
-  const profile = match?.profile ?? null;
-  const authorized = isAdminProfile(profile);
-
-  return {
-    configured: true,
-    authenticated: true,
-    authorized,
-    user,
-    profile,
-    usersTable: match?.table ?? null,
-    role: readField(profile, ['role', 'rôle', 'niveau', 'type']),
-    statut: readField(profile, ['statut', 'status', 'etat', 'état', 'active']),
-  };
 }
