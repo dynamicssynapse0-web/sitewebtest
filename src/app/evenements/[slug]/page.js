@@ -73,13 +73,19 @@ export default async function EventPage({ params }) {
           </div>
         </header>
 
-        <h2 className="text-2xl font-bold mb-8 text-white border-b border-gray-600 pb-4">Galerie Photos ({data.images?.length || 0})</h2>
-        
-        {data.images && data.images.length > 0 ? (
-          <Gallery images={data.images} title={data.title} />
-        ) : (
-          <p className="text-gray-400">Aucune photo disponible pour cet événement.</p>
-        )}
+        <h2 className="text-2xl font-bold mb-8 text-white border-b border-gray-600 pb-4">
+          Galerie Photos ({data.images?.length || 0})
+        </h2>
+
+        <Gallery
+          images={data.images || []}
+          title={data.title}
+          subtitle={`Photographies de ${data.title}`}
+          sport={data.sport}
+          href="/galerie"
+          hrefLabel="Ouvrir la galerie complète"
+          variant="grid"
+        />
       </div>
     </main>
   );

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatEventDate } from '@/lib/events';
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 
@@ -12,10 +13,12 @@ export default function EventCard({ event }) {
     <Link href={`/evenements/${event.slug}`}>
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition duration-300 cursor-pointer">
         <div className="relative h-48">
-          <img
+          <Image
             src={event.coverImage || DEFAULT_OG_IMAGE}
             alt={event.title}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
           />
           {hasCalendarDate ? (
             <div className="absolute top-3 left-3 bg-blue-600 text-white text-center rounded p-1 leading-tight shadow">

@@ -13,29 +13,30 @@ export const metadata = pageMetadata({
 export default function APropos() {
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
-      
       {/* En-tête avec les couleurs de la charte (Bleu et Rouge) */}
-      <div className="bg-gradient-to-r from-blue-900 to-red-700 text-white py-16 px-4">
+      <header className="bg-gradient-to-r from-blue-900 to-red-700 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          <Link href="/" className="text-white/80 hover:text-white mb-6 inline-block font-medium transition">
+          <Link href="/" className="text-white/80 hover:text-white mb-6 inline-block font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             ← Retour à l&apos;accueil
           </Link>
           <h1 className="text-4xl sm:text-6xl font-extrabold mb-2">Bilderfassung</h1>
           <p className="text-xl text-white/90">L&apos;œil du sport par Aubin Simo</p>
         </div>
-      </div>
+      </header>
 
       {/* Contenu principal */}
       <div className="max-w-4xl mx-auto px-4 -mt-10">
-        
-        <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100 flex flex-col md:flex-row gap-10 items-center md:items-start">
-          
-          {/* Ton portrait */}
-          <div className="w-48 h-48 md:w-64 md:h-64 relative rounded-full overflow-hidden border-4 border-blue-900 shadow-lg shrink-0">
+        <section
+          aria-labelledby="a-propos-title"
+          className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100 flex flex-col md:flex-row gap-10 items-center md:items-start"
+        >
+          <div className="w-48 h-48 md:w-64 md:h-64 relative rounded-full overflow-hidden border-4 border-blue-900 shadow-lg shrink-0 bg-blue-50">
             <Image
               src="/images/aubin-simo-bilderfassung.jpg"
               alt="Portrait d'Aubin Simo, photographe sportif"
               fill
+              sizes="(max-width: 768px) 12rem, 16rem"
+              priority
               className="object-cover"
             />
           </div>
@@ -61,15 +62,23 @@ export default function APropos() {
 
             {/* Bouton de contact avec la couleur rouge de la charte */}
             <div className="mt-8">
-              <Link 
-                href="/contact" 
-                className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-md"
-              >
-                Me contacter
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/contact"
+                  className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                >
+                  Me contacter
+                </Link>
+                <Link
+                  href="/galerie"
+                  className="inline-block border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white font-bold py-3 px-8 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900"
+                >
+                  Voir la galerie
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

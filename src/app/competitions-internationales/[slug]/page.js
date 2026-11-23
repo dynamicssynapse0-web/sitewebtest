@@ -92,13 +92,15 @@ export default async function InternationalCompetitionPage({ params }) {
           </span>
         </div>
 
-        {competition.images?.length ? (
-          <Gallery images={competition.images} title={competition.title} />
-        ) : (
-          <p className="rounded-xl border border-white/10 bg-white/5 p-6 text-blue-100/70">
-            Les photos de cette compétition seront bientôt disponibles.
-          </p>
-        )}
+        <Gallery
+          images={competition.images || []}
+          title={competition.title}
+          subtitle={`Photographies de ${competition.title}`}
+          sport={competition.sport}
+          href="/galerie"
+          hrefLabel="Ouvrir la galerie complète"
+          variant="grid"
+        />
       </div>
     </main>
   );
