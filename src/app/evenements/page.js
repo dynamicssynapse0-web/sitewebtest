@@ -11,8 +11,10 @@ export const metadata = pageMetadata({
   image: '/images/aubin-simo-annexe.jpg',
 });
 
-export default function Evenements() {
-  const evenements = getAllEvents();
+export const revalidate = 3600;
+
+export default async function Evenements() {
+  const evenements = await getAllEvents();
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">

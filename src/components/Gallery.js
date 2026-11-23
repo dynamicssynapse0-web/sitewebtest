@@ -8,6 +8,8 @@ import Counter from 'yet-another-react-lightbox/plugins/counter';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/counter.css';
 
+const PAGE_SIZE = 18;
+
 function normalizeImage(image, fallbackTitle, index) {
   const value = typeof image === 'string' ? { src: image } : image || {};
   const src = value.src || value.url || value.path || '';
@@ -35,6 +37,19 @@ export default function Gallery({
     () => images.map((image, position) => normalizeImage(image, title, position)),
     [images, title]
   );
+
+  const [pagination, setPagination] = useState({
+    source: photos,
+    count: PAGE_SIZE,
+  });
+
+  // Ajustement pendant le render (pattern React recommandé) plutôt que dans un effet.
+  if (pagination.source !== photos) {
+    setPagination({ source: photos, count: PAGE_SIZE });
+  }
+
+  const visiblePhotos = photos.slice(0, pagination.count);
+  const remainingPhotos = photos.length - visiblePhotos.length;
 
   const slides = useMemo(
     () =>
@@ -72,7 +87,7 @@ export default function Gallery({
               : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
           }
         >
-          {photos.map((photo, position) => (
+          {visiblePhotos.map((photo, position) => (
             <button
               key={`${photo.src}-${position}`}
               type="button"
@@ -111,6 +126,23 @@ export default function Gallery({
           ))}
         </div>
       )}
+
+      {remainingPhotos > 0 ? (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() =>
+              setPagination((previous) => ({
+                ...previous,
+                count: previous.count + PAGE_SIZE,
+              }))
+            }
+            className="rounded-full bg-red-600 px-7 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:text-base"
+          >
+            Charger plus de photos ({remainingPhotos})
+          </button>
+        </div>
+      ) : null}
 
       <Lightbox
         open={index >= 0}

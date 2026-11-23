@@ -15,7 +15,7 @@ function PortraitCard({ portrait }) {
       data-portrait-card
       href={`/sportifs-semaine/${portrait.id}`}
       className={`group block h-full w-[86%] shrink-0 snap-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 md:w-auto md:shrink md:snap-none ${
-        portrait.featured ? 'md:col-span-2 lg:col-span-12' : 'lg:col-span-6'
+        portrait.featured ? 'md:col-span-2 lg:col-span-7' : ''
       }`}
     >
       <article className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-blue-900/40 shadow-lg transition-all duration-500 group-hover:-translate-y-1 group-hover:border-red-500/40 group-hover:shadow-2xl">
@@ -32,8 +32,8 @@ function PortraitCard({ portrait }) {
             fill
             sizes={
               portrait.featured
-                ? '(max-width: 767px) 86vw, 100vw'
-                : '(max-width: 767px) 86vw, (max-width: 1023px) 50vw, 50vw'
+                ? '(max-width: 767px) 86vw, (max-width: 1023px) 100vw, 58vw'
+                : '(max-width: 767px) 86vw, (max-width: 1023px) 50vw, 38vw'
             }
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
           />
@@ -162,9 +162,12 @@ export default function SportifsDeLaSemaine({ sportifs = [] }) {
           className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:snap-none md:overflow-visible md:pb-0 lg:grid-cols-12"
           aria-label="Carrousel des sportifs de la semaine"
         >
-          {orderedPortraits.map((portrait) => (
-            <PortraitCard key={portrait.id} portrait={portrait} />
-          ))}
+          {featured ? <PortraitCard key={featured.id} portrait={featured} /> : null}
+          <div className="contents lg:col-span-5 lg:grid lg:grid-cols-1 lg:gap-5">
+            {secondary.map((portrait) => (
+              <PortraitCard key={portrait.id} portrait={portrait} />
+            ))}
+          </div>
         </div>
 
         <p className="mt-3 text-center text-xs font-medium text-blue-100/70 md:hidden">

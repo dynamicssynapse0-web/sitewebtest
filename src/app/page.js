@@ -6,14 +6,27 @@ import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
 import { getAllSportifs } from '@/lib/sportifsSemaine';
+import { getMomentsForts, getPortraitsExclusifs } from '@/lib/vitrine';
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function Home() {
-  const evenements = getAllEvents();
-  const competitionsInternationales = getAllInternationalCompetitions();
-  const sportifs = getAllSportifs();
+export const revalidate = 3600;
+
+export default async function Home() {
+  const [
+    evenements,
+    competitionsInternationales,
+    sportifs,
+    momentsForts,
+    portraitsExclusifs,
+  ] = await Promise.all([
+    getAllEvents(),
+    getAllInternationalCompetitions(),
+    getAllSportifs(),
+    getMomentsForts(),
+    getPortraitsExclusifs(),
+  ]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -143,23 +156,24 @@ export default function Home() {
   </div>
 
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-    {[
-      { src: '/images/aubin-simo-acceuil.jpg', alt: 'Joueur en pleine action' },
-      { src: '/images/aubin-simo-getimages.jpg', alt: 'Moment fort d’un événement sportif' },
-      { src: '/images/aubin-basketball-fiba.jpg', alt: 'Action de basketball pendant un match' },
-    ].map((photo) => (
+    {momentsForts.map((photo) => (
       <div
-        key={photo.src}
+        key={photo.id || photo.image}
         className="relative h-72 overflow-hidden rounded-2xl shadow-lg group"
       >
         <Image
-          src={photo.src}
-          alt={photo.alt}
+          src={photo.image}
+          alt={photo.alt || photo.title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-blue-950/60 via-transparent to-transparent" />
+        {photo.title || photo.legend ? (
+          <p className="absolute bottom-4 left-4 right-4 break-words text-sm font-bold text-white">
+            {photo.title || photo.legend}
+          </p>
+        ) : null}
       </div>
     ))}
   </div>
@@ -217,7 +231,7 @@ export default function Home() {
           </div>
         </div>
 
-        <ExclusivePortraits />
+        <ExclusivePortraits items={portraitsExclusifs} />
 
       </div>
     </main>

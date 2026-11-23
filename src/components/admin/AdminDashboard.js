@@ -1,0 +1,701 @@
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import LogoutButton from './LogoutButton';
+import { getBrowserSupabase } from '@/lib/supabase/client';
+import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
+import { uploadFileBase } from '@/lib/upload';
+import { compressImageForUpload } from '@/lib/imageCompression';
+import {
+  decodeMaybeJson,
+  normalizeImages,
+  toIsoDate,
+} from '@/lib/supabase/records';
+import { listeSports } from '@/lib/sports';
+import {
+  deleteArticle,
+  deleteSportif,
+  deleteVitrine,
+  saveArticle,
+  saveSportif,
+  saveVitrine,
+} from '@/app/admin/actions';
+
+const sportOptions = listeSports.map(({ nom }) => ({ value: nom, label: nom }));
+
+const SECTIONS = [
+  {
+    key: 'international',
+    label: 'Compétitions internationales',
+    hint: 'articles · type international',
+    icon: '🌍',
+    multiple: true,
+    fields: [
+      { name: 'title', label: 'Titre', placeholder: 'Cameroun vs Namibie', required: true },
+      { name: 'competition', label: 'Compétition', placeholder: 'Qualifications CAN 2027' },
+      { name: 'sport', label: 'Sport', type: 'select', options: sportOptions },
+      { name: 'date', label: 'Date exacte', type: 'date' },
+      { name: 'location', label: 'Lieu', placeholder: 'Stade de Japoma , Douala' },
+      { name: 'excerpt', label: 'Résumé', type: 'textarea' },
+      { name: 'content', label: 'Contenu détaillé', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'event',
+    label: 'Événements',
+    hint: 'articles · type event',
+    icon: '📅',
+    multiple: true,
+    fields: [
+      { name: 'title', label: 'Titre', placeholder: 'MTN Elite 1 — 10e journée', required: true },
+      { name: 'sport', label: 'Sport', type: 'select', options: sportOptions },
+      { name: 'date', label: 'Date exacte', type: 'date' },
+      { name: 'season', label: 'Saison', placeholder: '2026-2027' },
+      { name: 'location', label: 'Lieu', placeholder: 'Stades de Douala' },
+      { name: 'excerpt', label: 'Résumé', type: 'textarea' },
+      { name: 'content', label: 'Contenu détaillé', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'sportif',
+    label: 'Sportifs de la semaine',
+    hint: 'sportifs_semaine',
+    icon: '🏆',
+    multiple: true,
+    fields: [
+      { name: 'title', label: 'Titre', placeholder: 'Le talent en mouvement', required: true },
+      { name: 'player_name', label: 'Nom du joueur', placeholder: 'TIMBA' },
+      { name: 'position', label: 'Poste', placeholder: 'Attaquant' },
+      { name: 'competition', label: 'Compétition', placeholder: 'MTN Elite 1' },
+      { name: 'discipline', label: 'Discipline', placeholder: 'Football' },
+      { name: 'quote', label: 'Citation', type: 'textarea' },
+      { name: 'event_slug', label: 'Événement lié (slug)', placeholder: 'mtn-elite-one' },
+      { name: 'cta', label: 'Texte du bouton', placeholder: 'Voir le portrait' },
+      { name: 'featured', label: 'À la une', type: 'checkbox' },
+    ],
+  },
+  {
+    key: 'moment_fort',
+    label: 'Les moments forts',
+    hint: 'vitrine_items · moment_fort',
+    icon: '⚡',
+    multiple: false,
+    fields: [
+      { name: 'title', label: 'Titre / Légende', required: true },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
+    ],
+  },
+  {
+    key: 'portrait_exclusif',
+    label: 'Portrait exclusif',
+    hint: 'vitrine_items · portrait_exclusif',
+    icon: '📸',
+    multiple: false,
+    fields: [
+      { name: 'title', label: 'Nom du joueur', required: true },
+      { name: 'subtitle', label: 'Sous-titre / Poste', placeholder: 'Attaquant' },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
+    ],
+  },
+];
+
+function emptyForm(section) {
+  const form = { id: null, _images: [], _alt: '' };
+  section.fields.forEach((field) => {
+    form[field.name] = field.type === 'checkbox' ? false : '';
+  });
+  return form;
+}
+
+function rowToForm(section, row) {
+  const form = emptyForm(section);
+  const images = normalizeImages(
+    decodeMaybeJson(row.images ?? row.image ?? row.image_url),
+    row.title || 'Photo'
+  );
+
+  section.fields.forEach((field) => {
+    const raw = row[field.name];
+    if (field.type === 'date') form[field.name] = toIsoDate(raw);
+    else if (field.type === 'checkbox') {
+      form[field.name] = raw === true || ['true', '1', 'oui'].includes(String(raw ?? '').toLowerCase());
+    } else if (field.type === 'number') form[field.name] = Number(raw) || 0;
+    else form[field.name] = raw ?? '';
+  });
+
+  return { ...form, id: row.id ?? null, _images: images, _alt: images[0]?.alt || '' };
+}
+
+function actionsFor(key) {
+  if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
+  if (key === 'moment_fort' || key === 'portrait_exclusif') {
+    return { save: saveVitrine, remove: deleteVitrine };
+  }
+  return { save: saveArticle, remove: deleteArticle };
+}
+
+function itemSubtitle(section, row) {
+  if (section.key === 'sportif') {
+    return [row.player_name, row.position, row.competition].filter(Boolean).join(' — ');
+  }
+  if (section.key === 'moment_fort' || section.key === 'portrait_exclusif') {
+    return [row.subtitle, row.ordre ? `Ordre ${row.ordre}` : ''].filter(Boolean).join(' — ');
+  }
+  return [row.date, row.location].filter(Boolean).join(' · ');
+}
+
+function FieldInput({ field, value, onChange }) {
+  const id = `admin-field-${field.name}`;
+  const common = {
+    id,
+    name: field.name,
+    value: value ?? '',
+    onChange: (event) => onChange(field.name, event.target.value),
+    placeholder: field.placeholder,
+    required: field.required,
+    className:
+      'w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200',
+  };
+
+  if (field.type === 'textarea') {
+    return <textarea {...common} rows={4} />;
+  }
+
+  if (field.type === 'select') {
+    return (
+      <select {...common}>
+        <option value="">— Choisir —</option>
+        {field.options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.type === 'checkbox') {
+    return (
+      <label
+        htmlFor={id}
+        className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-bold text-blue-950"
+      >
+        <input
+          id={id}
+          name={field.name}
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(event) => onChange(field.name, event.target.checked)}
+          className="h-5 w-5 accent-red-600"
+        />
+        {field.label}
+      </label>
+    );
+  }
+
+  return <input {...common} type={field.type || 'text'} />;
+}
+
+export default function AdminDashboard({ email, uploadTimestamp, initial }) {
+  const router = useRouter();
+  const [items, setItems] = useState(initial);
+  const [activeKey, setActiveKey] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({});
+  const [newFiles, setNewFiles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+
+  const activeSection = SECTIONS.find((section) => section.key === activeKey) || null;
+
+  function openSection(section) {
+    setActiveKey(section.key);
+    setEditingId(null);
+    setForm(emptyForm(section));
+    setNewFiles([]);
+    setNotice('');
+    setError('');
+  }
+
+  function closeSection() {
+    setActiveKey(null);
+    setEditingId(null);
+    setForm({});
+    setNewFiles([]);
+  }
+
+  function editItem(section, row) {
+    setActiveKey(section.key);
+    setEditingId(row.id ?? null);
+    setForm(rowToForm(section, row));
+    setNewFiles([]);
+    setNotice('');
+    setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setField(name, value) {
+    setForm((previous) => ({ ...previous, [name]: value }));
+  }
+
+  function handleFiles(event) {
+    const files = Array.from(event.target.files || []);
+    setNewFiles((previous) => [...previous, ...files]);
+    event.target.value = '';
+  }
+
+  function removeExisting(index) {
+    setForm((previous) => ({
+      ...previous,
+      _images: (previous._images || []).filter((_, position) => position !== index),
+    }));
+  }
+
+  async function uploadFiles(section) {
+    if (newFiles.length === 0) return [];
+
+    const supabase = getBrowserSupabase();
+    if (!supabase) throw new Error('Supabase n’est pas configuré.');
+
+    const uploaded = [];
+    let position = 0;
+    const nameBase = uploadFileBase(form.title || section.key);
+    const defaultAlt = `Aubin Simo - Bilderfassung ${form.title || ''}`.trim();
+    const altText = String(form._alt || '').trim() || defaultAlt;
+
+    for (const file of newFiles) {
+      position += 1;
+      const optimized = await compressImageForUpload(file);
+      const fileName = `aubin-simo-bilderfassung-${nameBase}-${uploadTimestamp + position}.${optimized.extension}`;
+      const path = `${section.key}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(SUPABASE_MEDIA_BUCKET)
+        .upload(path, optimized.blob, {
+          contentType: optimized.blob.type || file.type || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload de ${file.name} : ${uploadError.message}`);
+      }
+
+      const { data } = supabase.storage
+        .from(SUPABASE_MEDIA_BUCKET)
+        .getPublicUrl(path);
+
+      uploaded.push({
+        src: data.publicUrl,
+        alt: altText,
+        legend: form.title || file.name,
+        credit: 'Aubin Simo',
+      });
+    }
+
+    return uploaded;
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!activeSection) return;
+
+    setBusy(true);
+    setNotice('');
+    setError('');
+
+    try {
+      const uploaded = await uploadFiles(activeSection);
+      const allImages = [...(form._images || []), ...uploaded].slice(
+        0,
+        activeSection.multiple ? 30 : 1
+      );
+      const { save } = actionsFor(activeSection.key);
+
+      let payload;
+      if (activeSection.key === 'international' || activeSection.key === 'event') {
+        payload = {
+          id: editingId,
+          type: activeSection.key,
+          title: form.title,
+          competition: form.competition || '',
+          sport: form.sport || '',
+          date: form.date || '',
+          season: form.season || '',
+          location: form.location || '',
+          excerpt: form.excerpt || '',
+          content: form.content || '',
+          cover_image: allImages[0]?.src || '',
+          images: JSON.stringify(allImages),
+        };
+      } else if (activeSection.key === 'sportif') {
+        payload = {
+          id: editingId,
+          title: form.title,
+          player_name: form.player_name || '',
+          position: form.position || '',
+          competition: form.competition || '',
+          discipline: form.discipline || '',
+          quote: form.quote || '',
+          event_slug: form.event_slug || '',
+          cta: form.cta || '',
+          featured: Boolean(form.featured),
+          images: JSON.stringify(allImages),
+        };
+      } else {
+        payload = {
+          id: editingId,
+          section: activeSection.key,
+          title: form.title,
+          subtitle: form.subtitle || '',
+          ordre: Number(form.ordre) || 0,
+          image: allImages[0]?.src || '',
+          image_url: allImages[0]?.src || '',
+          alt:
+            String(form._alt || '').trim() ||
+            `Aubin Simo - Bilderfassung ${form.title || ''}`.trim(),
+          images: JSON.stringify(allImages),
+        };
+      }
+
+      const saved = await save(payload);
+
+      setItems((previous) => {
+        const list = previous[activeSection.key] || [];
+        const exists = list.some((row) => row.id === saved.id);
+        return {
+          ...previous,
+          [activeSection.key]: exists
+            ? list.map((row) => (row.id === saved.id ? saved : row))
+            : [saved, ...list],
+        };
+      });
+
+      setNotice('Enregistrement effectué.');
+      setEditingId(null);
+      setForm(emptyForm(activeSection));
+      setNewFiles([]);
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError.message || 'Une erreur est survenue.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(section, row) {
+    if (!window.confirm(`Supprimer « ${row.title || 'cet élément'} » ?`)) return;
+
+    setBusy(true);
+    setNotice('');
+    setError('');
+
+    try {
+      const { remove } = actionsFor(section.key);
+      await remove(row.id);
+      setItems((previous) => ({
+        ...previous,
+        [section.key]: (previous[section.key] || []).filter(
+          (item) => item.id !== row.id
+        ),
+      }));
+      setNotice('Élément supprimé.');
+    } catch (deleteError) {
+      setError(deleteError.message || 'Suppression impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-50 pb-16">
+      <header className="bg-blue-950 px-4 py-7 text-white">
+        <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-400">
+              Bilderfassung · Espace privé
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
+              Administration
+            </h1>
+            {email ? <p className="mt-1 text-sm text-blue-100/70">{email}</p> : null}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition hover:border-red-400 hover:bg-red-600"
+            >
+              Voir le site
+            </Link>
+            <LogoutButton />
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-5xl px-4 pt-8">
+        {notice ? (
+          <p
+            role="status"
+            className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800"
+          >
+            {notice}
+          </p>
+        ) : null}
+        {error ? (
+          <p
+            role="alert"
+            className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        {!activeSection ? (
+          <>
+            <div className="mb-6">
+              <h2 className="text-2xl font-extrabold text-blue-950">
+                Que souhaitez-vous gérer ?
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Choisissez une rubrique pour ajouter, modifier ou supprimer un contenu.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {SECTIONS.map((section) => (
+                <button
+                  key={section.key}
+                  type="button"
+                  onClick={() => openSection(section)}
+                  className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-red-400 hover:shadow-lg"
+                >
+                  <span className="text-3xl" aria-hidden="true">
+                    {section.icon}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words text-base font-extrabold text-blue-950">
+                      {section.label}
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-500">
+                      {(items[section.key] || []).length} élément(s) · {section.hint}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-xl text-red-600">
+                    →
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={closeSection}
+              className="mb-5 text-sm font-bold text-blue-900 transition hover:text-red-600"
+            >
+              ← Toutes les rubriques
+            </button>
+
+            <div className="mb-7 flex items-center gap-3">
+              <span className="text-3xl" aria-hidden="true">
+                {activeSection.icon}
+              </span>
+              <div>
+                <h2 className="text-2xl font-extrabold text-blue-950">
+                  {activeSection.label}
+                </h2>
+                <p className="text-xs text-gray-500">{activeSection.hint}</p>
+              </div>
+            </div>
+
+            <section className="mb-9 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+              <h3 className="mb-4 text-sm font-extrabold uppercase tracking-widest text-gray-500">
+                Éléments publiés ({(items[activeSection.key] || []).length})
+              </h3>
+              {(items[activeSection.key] || []).length === 0 ? (
+                <p className="text-sm text-gray-500">Aucun élément pour le moment.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {(items[activeSection.key] || []).map((row) => (
+                    <li
+                      key={row.id || row.slug || row.title}
+                      className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="break-words font-bold text-blue-950">
+                          {row.title || 'Sans titre'}
+                        </p>
+                        <p className="mt-1 break-words text-xs text-gray-500">
+                          {itemSubtitle(activeSection, row)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => editItem(activeSection, row)}
+                          className="rounded-full bg-blue-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-800"
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(activeSection, row)}
+                          disabled={busy}
+                          className="rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+            >
+              <h3 className="mb-5 text-lg font-extrabold text-blue-950">
+                {editingId ? 'Modifier l’élément' : 'Nouvel élément'}
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {activeSection.fields.map((field) => (
+                  <div
+                    key={field.name}
+                    className={
+                      field.type === 'textarea' || field.type === 'checkbox'
+                        ? 'sm:col-span-2'
+                        : ''
+                    }
+                  >
+                    {field.type !== 'checkbox' ? (
+                      <label
+                        htmlFor={`admin-field-${field.name}`}
+                        className="mb-2 block text-sm font-bold text-blue-950"
+                      >
+                        {field.label}
+                      </label>
+                    ) : null}
+                    <FieldInput
+                      field={field}
+                      value={form[field.name]}
+                      onChange={setField}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <label
+                  htmlFor="admin-images"
+                  className="mb-2 block text-sm font-bold text-blue-950"
+                >
+                  {activeSection.multiple
+                    ? 'Photos (plusieurs possibles)'
+                    : 'Photo'}
+                </label>
+                <input
+                  id="admin-images"
+                  type="file"
+                  accept="image/*"
+                  multiple={activeSection.multiple}
+                  onChange={handleFiles}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
+                />
+
+                <div className="mt-4">
+                  <label
+                    htmlFor="admin-photo-alt"
+                    className="mb-2 block text-sm font-bold text-blue-950"
+                  >
+                    Texte alternatif (alt)
+                  </label>
+                  <input
+                    id="admin-photo-alt"
+                    type="text"
+                    value={form._alt || ''}
+                    onChange={(event) => setField('_alt', event.target.value)}
+                    placeholder={`Aubin Simo - Bilderfassung ${form.title || ''}`.trim()}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Laissez vide pour utiliser « Aubin Simo - Bilderfassung » suivi du titre.
+                  </p>
+                </div>
+
+                <p className="mt-2 text-xs text-gray-500">
+                  Upload direct dans le bucket Supabase « {SUPABASE_MEDIA_BUCKET} ». Fichiers
+                  renommés en « aubin-simo-bilderfassung-… », redimensionnés à 1600 px max et
+                  compressés en WebP/JPEG (qualité 0,82). Crédit : Aubin Simo.
+                </p>
+
+                {form._images?.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {form._images.map((image, index) => (
+                      <div key={image.src || index} className="relative">
+                        <Image
+                          src={image.src}
+                          alt={image.alt || 'Photo'}
+                          width={80}
+                          height={80}
+                          className="h-20 w-20 rounded-lg object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExisting(index)}
+                          aria-label={`Retirer la photo ${index + 1}`}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {newFiles.length > 0 ? (
+                  <ul className="mt-3 space-y-1 text-xs text-gray-600">
+                    {newFiles.map((file, index) => (
+                      <li key={`${file.name}-${index}`} className="break-words">
+                        · {file.name} (à uploader)
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewFiles((previous) =>
+                              previous.filter((_, position) => position !== index)
+                            )
+                          }
+                          className="ml-2 font-bold text-red-600"
+                        >
+                          retirer
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="mt-7 w-full rounded-full bg-red-600 px-6 py-4 text-base font-bold text-white shadow-lg transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {busy
+                  ? 'Enregistrement…'
+                  : editingId
+                    ? 'Enregistrer les modifications'
+                    : 'Publier'}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}

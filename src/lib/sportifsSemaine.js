@@ -2,11 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { getAllEvents, formatEventDate } from './events';
 import { DEFAULT_OG_IMAGE } from './seo';
+import { getRemoteSportifs } from './supabase/content';
+import { mergeCollections, mergeImages } from './supabase/records';
 
-// Ajouter un portrait = ajouter une entrée ici + un dossier d'images portant le même id.
+// Ajouter un portrait local = ajouter une entrée ici + un dossier d'images portant le même id.
 export const portraits = [
   {
     id: 'lions',
+    slug: 'lions',
     title: 'Les Lions en action',
     discipline: 'Football',
     badge: 'À LA UNE - FOOTBALL',
@@ -23,6 +26,7 @@ export const portraits = [
   },
   {
     id: 'parquet',
+    slug: 'parquet',
     title: 'L’énergie du parquet',
     discipline: 'Basketball',
     badge: '02 - BASKETBALL',
@@ -37,6 +41,7 @@ export const portraits = [
   },
   {
     id: 'mtn',
+    slug: 'mtn',
     title: 'Le talent en mouvement',
     discipline: 'Football',
     badge: '03 - FOOTBALL',
@@ -57,30 +62,37 @@ const portraitsDirectory = path.join(
   'public/images/sportifs-semaine'
 );
 
-// Lecture serveur du dossier d'un portrait : toutes les images supportées, triées.
 export function getSportifImages(id) {
-  if (!/^[a-z0-9-]+$/.test(id)) return [];
+  if (!/^[a-z0-9-]+$/.test(String(id || ''))) return [];
 
   const directory = path.join(portraitsDirectory, id);
   if (!fs.existsSync(directory)) return [];
 
-  return fs
-    .readdirSync(directory)
+  return fs.readdirSync(directory)
     .filter((fileName) => IMAGE_EXTENSION.test(fileName))
     .sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }))
     .map((fileName) => `/images/sportifs-semaine/${id}/${fileName}`);
 }
 
-function withDetails(portrait, events) {
-  const images = getSportifImages(portrait.id);
+function decoratePortrait(portrait, index, events) {
+  const images = mergeImages(portrait.images, getSportifImages(portrait.id));
   const event = portrait.eventSlug
     ? events.find((item) => item.slug === portrait.eventSlug)
     : null;
+  const badge =
+    portrait.badge ||
+    (portrait.featured
+      ? `À LA UNE - ${portrait.discipline}`
+      : `${String(index + 1).padStart(2, '0')} - ${portrait.discipline}`)
+      .toLocaleUpperCase('fr');
 
   return {
     ...portrait,
+    id: portrait.id || portrait.slug,
     images,
-    cover: images[0] ?? DEFAULT_OG_IMAGE,
+    cover: images[0]?.src || DEFAULT_OG_IMAGE,
+    badge,
+    featured: Boolean(portrait.featured),
     eventHref: event ? `/evenements/${event.slug}` : null,
     eventLabel: event?.title ?? portrait.eventLabel ?? portrait.fallbackLabel,
     dateLabel: event
@@ -89,14 +101,32 @@ function withDetails(portrait, events) {
   };
 }
 
-export function getAllSportifs() {
-  const events = getAllEvents();
-  return portraits.map((portrait) => withDetails(portrait, events));
+export async function getAllSportifs() {
+  const [events, remote] = await Promise.all([
+    getAllEvents(),
+    getRemoteSportifs(),
+  ]);
+  const local = portraits.map((portrait) => ({
+    ...portrait,
+    images: getSportifImages(portrait.id),
+    source: 'markdown',
+  }));
+
+  const merged = mergeCollections(local, remote);
+  const ordered = [...merged].sort((a, b) => {
+    if (Boolean(a.featured) !== Boolean(b.featured)) {
+      return a.featured ? -1 : 1;
+    }
+    return (Number(a.order) || 0) - (Number(b.order) || 0);
+  });
+
+  return ordered.map((portrait, index) =>
+    decoratePortrait(portrait, index, events)
+  );
 }
 
-export function getSportifById(id) {
-  const portrait = portraits.find((item) => item.id === id);
-  if (!portrait) return null;
-
-  return withDetails(portrait, getAllEvents());
+export async function getSportifById(id) {
+  if (!/^[a-z0-9-]+$/.test(String(id || ''))) return null;
+  const portraitsList = await getAllSportifs();
+  return portraitsList.find((portrait) => portrait.id === id) ?? null;
 }

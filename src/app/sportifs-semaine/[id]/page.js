@@ -11,7 +11,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
-  const portrait = getSportifById(id);
+  const portrait = await getSportifById(id);
 
   if (!portrait) {
     return { title: 'Portrait introuvable', robots: { index: false } };
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }) {
 
 export default async function SportifSemainePage({ params }) {
   const { id } = await params;
-  const portrait = getSportifById(id);
+  const portrait = await getSportifById(id);
 
   if (!portrait) notFound();
 

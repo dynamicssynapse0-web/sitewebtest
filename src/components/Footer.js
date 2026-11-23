@@ -104,9 +104,18 @@ export default function Footer() {
           <p className="text-sm text-gray-400">
             © {new Date().getFullYear()} Bilderfassung par Aubin Simo. Tous droits réservés.
           </p>
-          <p className="text-sm text-gray-400">
-            Conçu avec passion 📸
-          </p>
+          <div className="flex flex-col items-center gap-2 sm:items-end">
+            <Link
+              href="/admin"
+              rel="nofollow"
+              className="text-[11px] text-gray-500 transition hover:text-gray-300"
+            >
+              Admin
+            </Link>
+            <p className="text-sm text-gray-400">
+              Conçu avec passion 📸
+            </p>
+          </div>
         </div>
       </div>
     </footer>

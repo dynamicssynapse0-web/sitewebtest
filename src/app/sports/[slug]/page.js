@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
+import { formatEventDate, getAllEvents } from '@/lib/events';
 import { pageMetadata } from '@/lib/seo';
+
+export const revalidate = 3600;
 
 // SEO dynamique
 export async function generateMetadata({ params }) {
@@ -16,31 +16,23 @@ export async function generateMetadata({ params }) {
   });
 }
 
-// Récupération des événements (version robuste)
-function getEventsBySport(sportSlug) {
-  const eventsDirectory = path.join(process.cwd(), 'content/events');
-  if (!fs.existsSync(eventsDirectory)) return [];
+// Événements locaux (Markdown) + événements ajoutés depuis l'admin Supabase.
+async function getEventsBySport(sportSlug) {
+  const allEvents = await getAllEvents();
 
-  const fileNames = fs.readdirSync(eventsDirectory);
-  const allEvents = fileNames.map((fileName) => {
-    const slug = fileName.replace(/\.md$/, '');
-    const fullPath = path.join(eventsDirectory, fileName);
-    const fileContents = fs.readFileSync(fullPath, 'utf8');
-    const { data } = matter(fileContents);
-    return { slug, ...data };
-  });
-
-  // Filtre robuste (trim + toLowerCase)
-  return allEvents.filter(event => {
+  return allEvents.filter((event) => {
     if (!event.sport) return false;
-    return event.sport.trim().toLowerCase() === sportSlug.trim().toLowerCase();
+    return (
+      event.sport.trim().toLocaleLowerCase('fr') ===
+      sportSlug.trim().toLocaleLowerCase('fr')
+    );
   });
 }
 
 export default async function SportPage({ params }) {
   const { slug } = await params;
   const nomSport = slug.charAt(0).toUpperCase() + slug.slice(1);
-  const evenements = getEventsBySport(slug);
+  const evenements = await getEventsBySport(slug);
 
   return (
     <main className="relative min-h-screen pb-20 overflow-hidden">
@@ -96,7 +88,7 @@ export default async function SportPage({ params }) {
                   
                   <div className="flex flex-col gap-2 mb-6 text-gray-600 text-sm">
                     <p className="flex items-center gap-2">📍 {event.location}</p>
-                    <p className="flex items-center gap-2">📅 {new Date(event.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <p className="flex items-center gap-2">📅 {formatEventDate(event.date, event.season)}</p>
                   </div>
 
                   <Link 

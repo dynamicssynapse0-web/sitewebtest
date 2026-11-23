@@ -1,7 +1,7 @@
 ---
 title: "Cameroun vs Namibie"
 competition: "Qualifications CAN 2027"
-date: "2027-11-12"
+date: "2026-11-12"
 time: "20h00"
 location: "Stade de Japoma , Douala"
 sport: "Football"

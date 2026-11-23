@@ -9,15 +9,16 @@ import {
 } from '@/lib/internationalCompetitions';
 import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
-export function generateStaticParams() {
-  return getAllInternationalCompetitions().map((competition) => ({
-    slug: competition.slug,
-  }));
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const competitions = await getAllInternationalCompetitions();
+  return competitions.map((competition) => ({ slug: competition.slug }));
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const competition = getInternationalCompetitionBySlug(slug);
+  const competition = await getInternationalCompetitionBySlug(slug);
 
   if (!competition) {
     return { title: 'Compétition introuvable', robots: { index: false } };
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }) {
 
 export default async function InternationalCompetitionPage({ params }) {
   const { slug } = await params;
-  const competition = getInternationalCompetitionBySlug(slug);
+  const competition = await getInternationalCompetitionBySlug(slug);
 
   if (!competition) notFound();
 

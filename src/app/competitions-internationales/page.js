@@ -13,8 +13,10 @@ export const metadata = pageMetadata({
   path: '/competitions-internationales',
 });
 
-export default function CompetitionsInternationales() {
-  const competitions = getAllInternationalCompetitions();
+export const revalidate = 3600;
+
+export default async function CompetitionsInternationales() {
+  const competitions = await getAllInternationalCompetitions();
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">

@@ -3,27 +3,31 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 
-// Remplace les noms et les fichiers d'image par tes portraits.
-const portraitsExclusifs = [
+// Repli local : la page transmet les portraits fusionnés (Markdown + Supabase).
+const portraitsLocaux = [
   {
-    nom: 'TIMBA',
+    title: 'TIMBA',
+    subtitle: 'Attaquant',
     image: '/images/aubin-simo-player.jpg',
-    alt: 'Portrait exclusif du joueur 1',
+    alt: 'Portrait exclusif de TIMBA',
   },
   {
-    nom: 'MANGUELE',
+    title: 'MANGUELE',
+    subtitle: 'Meneur',
     image: '/images/aubin-simo-manguele.jpg',
-    alt: 'Portrait exclusif du joueur 2',
+    alt: 'Portrait exclusif de MANGUELE',
   },
   {
-    nom: 'Nom du joueur 3',
+    title: 'JOSEPH OLOKO EDE',
+    subtitle: 'Défenseur',
     image: '/images/aubin-simo-photographe-football-RCA-BENIN.jpg.jpg',
-    alt: 'Portrait exclusif du joueur 3',
+    alt: 'Portrait exclusif de Joseph Oloko Ede',
   },
 ];
 
-export default function ExclusivePortraits() {
+export default function ExclusivePortraits({ items = portraitsLocaux }) {
   const carouselRef = useRef(null);
+  const portraits = items.length > 0 ? items : portraitsLocaux;
 
   function faireDefiler(direction) {
     const carousel = carouselRef.current;
@@ -40,7 +44,7 @@ export default function ExclusivePortraits() {
   }
 
   return (
-    <section className="mb-16 border-t border-gray-200 pt-14">
+    <section id="portraits-exclusifs" className="mb-16 border-t border-gray-200 pt-14">
       <div className="mb-7 flex items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-600">
@@ -79,24 +83,29 @@ export default function ExclusivePortraits() {
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3"
         aria-label="Carrousel des portraits exclusifs"
       >
-        {portraitsExclusifs.map((portrait) => (
+        {portraits.map((portrait) => (
           <article
-            key={portrait.nom}
+            key={portrait.id || portrait.title}
             data-portrait-card
             className="w-[82%] shrink-0 snap-start sm:w-[46%] lg:w-[31%] xl:w-[23%]"
           >
             <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200">
               <Image
-                src={portrait.image}
-                alt={portrait.alt}
+                src={portrait.image || portrait.src}
+                alt={portrait.alt || `Portrait exclusif de ${portrait.title}`}
                 fill
                 sizes="(max-width: 640px) 82vw, (max-width: 1024px) 46vw, 25vw"
                 className="object-cover transition duration-500 hover:scale-105"
               />
             </div>
-            <h3 className="mt-4 text-center text-lg font-bold tracking-wide text-blue-950">
-              {portrait.nom}
+            <h3 className="mt-4 break-words text-center text-lg font-bold tracking-wide text-blue-950">
+              {portrait.title}
             </h3>
+            {portrait.subtitle ? (
+              <p className="mt-1 break-words text-center text-xs font-semibold uppercase tracking-wider text-red-600">
+                {portrait.subtitle}
+              </p>
+            ) : null}
           </article>
         ))}
       </div>
