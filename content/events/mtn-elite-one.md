@@ -10,7 +10,7 @@ images:
   - "/images/aubinsimoimages.jpg"
   - "/images/aubinsimokotto.jpg"
   - "/images/AUBINSIMO-MTN.jpg"
-   - "/images/aubin-simo-dynamo.jpg"
+  - "/images/aubin-simo-dynamo.jpg"
   
 ---
 
