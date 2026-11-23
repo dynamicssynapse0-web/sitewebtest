@@ -48,8 +48,8 @@ export default function APropos() {
             
             <div className="space-y-4 text-gray-700 text-lg leading-relaxed">
               <p>
-                Derrière l&apos;objectif de <strong>Bilderfassung</strong>, il y a <strong>Aubin Simo</strong>, un passionné de sport et de photographie. 
-                Mon but est de capturer l&apos;intensité, l&apos;émotion et la beauté brute des événements sportifs.
+                Derrière l&apos;objectif de <strong>Bilderfassung</strong>, il y a <strong>Aubin Simo</strong>, un passionné de sport et de photographie.
+                Je capture l&apos;émotion et l&apos;intensité de l&apos;instant pour que chaque souvenir soit inoubliable.
               </p>
               <p>
                 Du football au basketball en passant par l&apos;athlétisme, je parcours les terrains et les stades pour vous faire revivre 

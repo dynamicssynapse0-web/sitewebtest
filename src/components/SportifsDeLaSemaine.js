@@ -1,12 +1,20 @@
+'use client';
+
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getAllSportifs } from '@/lib/sportifsSemaine';
 
-function PortraitCard({ portrait, index }) {
+function PortraitCard({ portrait }) {
+  const photoCount = portrait.images.length;
+  const photoLabel = `${photoCount} photo${photoCount > 1 ? 's' : ''}`;
+  const badgeLabel = `${portrait.badge} - ${photoLabel}`;
+  const identite = `${portrait.nom} - ${portrait.poste} - ${portrait.competition}`;
+
   return (
     <Link
+      data-portrait-card
       href={`/sportifs-semaine/${portrait.id}`}
-      className={`group block h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
+      className={`group block h-full w-[86%] shrink-0 snap-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:w-[62%] lg:w-auto ${
         portrait.featured ? 'lg:col-span-7' : ''
       }`}
     >
@@ -22,8 +30,8 @@ function PortraitCard({ portrait, index }) {
             fill
             sizes={
               portrait.featured
-                ? '(max-width: 1024px) 100vw, 58vw'
-                : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 34vw'
+                ? '(max-width: 640px) 86vw, (max-width: 1024px) 62vw, 58vw'
+                : '(max-width: 640px) 86vw, (max-width: 1024px) 62vw, 34vw'
             }
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
           />
@@ -35,22 +43,9 @@ function PortraitCard({ portrait, index }) {
             portrait.featured ? 'p-5 sm:p-8' : 'p-4 sm:p-5'
           }`}
         >
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {portrait.featured ? (
-              <span className="rounded-full bg-red-600 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
-                À la une
-              </span>
-            ) : (
-              <span className="rounded-full border border-white/25 bg-blue-950/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100">
-                0{index}
-              </span>
-            )}
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-300">
-              {portrait.discipline}
-            </span>
-            <span className="ml-auto rounded-full bg-blue-950/60 px-2.5 py-1 text-[10px] font-bold text-blue-100">
-              {portrait.images.length} photo
-              {portrait.images.length > 1 ? 's' : ''}
+          <div className="mb-3">
+            <span className="inline-flex max-w-full rounded-full bg-red-600 px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-white">
+              {badgeLabel}
             </span>
           </div>
 
@@ -61,9 +56,8 @@ function PortraitCard({ portrait, index }) {
           >
             {portrait.title}
           </h3>
-          <p className="mt-1 text-[11px] font-medium text-blue-100/80 sm:text-xs">
-            {portrait.eventLabel}
-            {portrait.dateLabel ? ` · ${portrait.dateLabel}` : ''}
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-red-300 sm:text-xs">
+            {identite}
           </p>
           <blockquote
             className={`mt-3 border-l-2 border-red-500 pl-3 text-white/90 ${
@@ -90,10 +84,46 @@ function PortraitCard({ portrait, index }) {
   );
 }
 
-export default function SportifsDeLaSemaine() {
-  const sportifs = getAllSportifs();
+export default function SportifsDeLaSemaine({ sportifs = [] }) {
+  const carouselRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const featured = sportifs.find((portrait) => portrait.featured);
   const secondary = sportifs.filter((portrait) => !portrait.featured);
+  const orderedPortraits = featured ? [featured, ...secondary] : sportifs;
+
+  function handleScroll() {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const cards = Array.from(carousel.querySelectorAll('[data-portrait-card]'));
+    if (cards.length === 0) return;
+
+    const carouselRect = carousel.getBoundingClientRect();
+    const carouselCenter = carouselRect.left + carouselRect.width / 2;
+
+    let closestIndex = 0;
+    let smallestDistance = Number.POSITIVE_INFINITY;
+
+    cards.forEach((card, index) => {
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
+      const distance = Math.abs(cardCenter - carouselCenter);
+
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    setActiveIndex(closestIndex);
+  }
+
+  function goToPortrait(index) {
+    const card = carouselRef.current?.querySelectorAll('[data-portrait-card]')[index];
+    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    setActiveIndex(index);
+  }
 
   return (
     <section
@@ -108,16 +138,12 @@ export default function SportifsDeLaSemaine() {
       <div className="relative">
         <div className="mb-8 flex flex-col gap-5 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-red-400">
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-red-500"
-              />
-              Le rendez-vous hebdomadaire
+            <p className="mb-2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.18em] text-red-400 sm:text-xs sm:tracking-[0.22em]">
+              LE RENDEZ-VOUS HEBDOMADAIRE
             </p>
             <h2
               id="sportifs-semaine-title"
-              className="text-3xl font-extrabold tracking-tight sm:text-4xl"
+              className="text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl"
             >
               Les sportifs de la semaine
             </h2>
@@ -128,17 +154,48 @@ export default function SportifsDeLaSemaine() {
           </p>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-12">
-          {featured && <PortraitCard portrait={featured} index={1} />}
-          <div className="grid gap-5 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
-            {secondary.map((portrait, position) => (
-              <PortraitCard
-                key={portrait.id}
-                portrait={portrait}
-                index={position + 2}
-              />
-            ))}
-          </div>
+        <div
+          ref={carouselRef}
+          onScroll={handleScroll}
+          className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-12 lg:overflow-visible lg:pb-0"
+          aria-label="Carrousel des sportifs de la semaine"
+        >
+          {orderedPortraits.map((portrait) => (
+            <PortraitCard key={portrait.id} portrait={portrait} />
+          ))}
+        </div>
+
+        <p className="mt-3 text-center text-xs font-medium text-blue-100/70 lg:hidden">
+          ← Fais glisser pour découvrir les suivants
+        </p>
+
+        <div
+          className="mt-4 flex justify-center gap-3 lg:hidden"
+          role="group"
+          aria-label="Pagination des sportifs de la semaine"
+        >
+          {orderedPortraits.map((portrait, index) => (
+            <button
+              key={portrait.id}
+              type="button"
+              onClick={() => goToPortrait(index)}
+              aria-label={`Voir le portrait ${index + 1} sur ${orderedPortraits.length}`}
+              aria-current={index === activeIndex ? 'true' : undefined}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-white transition hover:text-red-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+            >
+              <span aria-hidden="true">{index === activeIndex ? '●' : '○'}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            href="/galerie"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:border-red-400 hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+          >
+            Voir tous les portraits
+            <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </div>
     </section>

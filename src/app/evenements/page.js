@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAllEvents } from '@/lib/events';
+import { formatEventDate, getAllEvents } from '@/lib/events';
 import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 export const metadata = pageMetadata({
@@ -60,7 +60,7 @@ export default function Evenements() {
                     </h2>
                     
                     <p className="text-gray-600 text-sm mb-4">
-                      📅 {isNaN(new Date(event.date).getTime()) ? event.date : new Date(event.date).toLocaleDateString('fr-FR')} | 📍 {event.location}
+                      📅 {formatEventDate(event.date, event.season)} | 📍 {event.location}
                     </p>
                     
                     {/* Le commentaire de l'événement (le résumé) */}

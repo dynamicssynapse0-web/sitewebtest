@@ -5,6 +5,7 @@ import ExclusivePortraits from '@/components/ExclusivePortraits';
 import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
+import { getAllSportifs } from '@/lib/sportifsSemaine';
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -12,6 +13,7 @@ import Image from 'next/image';
 export default function Home() {
   const evenements = getAllEvents();
   const competitionsInternationales = getAllInternationalCompetitions();
+  const sportifs = getAllSportifs();
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -130,7 +132,7 @@ export default function Home() {
 <section className="mb-20">
   <div className="text-center mb-8">
     <p className="text-red-600 font-semibold uppercase tracking-widest text-sm mb-2">
-      Au cœur de l’action
+      AU COEUR DE L&apos;ACTION
     </p>
     <h2 className="text-3xl md:text-4xl font-extrabold text-blue-900 mb-3">
       Les moments forts
@@ -163,13 +165,13 @@ export default function Home() {
   </div>
 </section>
 
-        <SportifsDeLaSemaine />
+        <SportifsDeLaSemaine sportifs={sportifs} />
 
         {/* 3. SECTION : POURQUOI ME CHOISIR ? */}
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100 mb-16">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-extrabold text-blue-900 mb-4">Pourquoi travailler avec Bilderfassung ?</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Je ne fais pas que prendre des photos, je capture l&apos;émotion et l&apos;intensité de l&apos;instant pour que chaque souvenir soit inoubliable.</p>
+            <p className="text-gray-600 max-w-2xl mx-auto">Je capture l&apos;émotion et l&apos;intensité de l&apos;instant pour que chaque souvenir soit inoubliable.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -192,17 +194,27 @@ export default function Home() {
         </div>
 
         {/* 4. APPEL À L'ACTION FINAL */}
-        <div className="bg-gradient-to-r from-blue-900 to-red-700 rounded-3xl p-10 md:p-16 text-center text-white shadow-xl">
+        <div className="bg-gradient-to-r from-blue-900 to-red-700 rounded-3xl p-8 sm:p-10 md:p-16 text-center text-white shadow-xl">
           <h2 className="text-3xl md:text-5xl font-extrabold mb-6">Vous organisez un événement sportif ?</h2>
-          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Ne laissez pas les meilleurs moments s&apos;échapper. Engagez un photographe passionné pour immortaliser votre événement.
+          <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Ne laissez pas vos meilleurs moments s&apos;échapper. Engagez un photographe passionné pour immortaliser votre événement. Réservez dès maintenant pour la CAN 2027.
           </p>
-          <Link 
-            href="/contact" 
-            className="bg-white text-blue-900 hover:bg-gray-100 font-bold py-4 px-10 rounded-full transition-colors shadow-lg text-lg inline-block"
-          >
-            Discutons de votre projet →
-          </Link>
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/contact"
+              className="w-full max-w-xs sm:w-auto bg-white text-blue-900 hover:bg-gray-100 font-bold py-4 px-6 sm:px-10 rounded-full transition-colors shadow-lg text-base sm:text-lg text-center"
+            >
+              Discutons de votre projet →
+            </Link>
+            <a
+              href="https://wa.me/237676978878?text=Bonjour%20Aubin%2C%20je%20souhaite%20r%C3%A9server%20une%20prestation%20photo%20pour%20la%20CAN%202027."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full max-w-xs sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 sm:px-10 rounded-full transition-colors shadow-lg text-base sm:text-lg text-center"
+            >
+              Réserver pour CAN 2027
+            </a>
+          </div>
         </div>
 
         <ExclusivePortraits />

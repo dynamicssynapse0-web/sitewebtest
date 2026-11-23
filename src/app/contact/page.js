@@ -26,21 +26,26 @@ export default function Contact() {
 
           <aside aria-label="Coordonnées" className="flex flex-col gap-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="font-bold text-lg text-blue-900 mb-2">Aubin Simo</h2>
+              <p className="text-gray-600">
+                Bilderfassung - L&apos;œil du sport
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="font-bold text-lg text-blue-900 mb-2">📍 Localisation</h2>
               <address className="not-italic text-gray-600">
-                Terminus Bonamoussadi
-                <br />
-                Douala, Cameroun
+                Terminus Bonamoussadi, Douala, Cameroun
               </address>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="font-bold text-lg text-blue-900 mb-2">📧 Email</h2>
               <a
-                href="mailto:synapsesdynamics@gmail.com"
+                href="mailto:bilderfassung@gmail.com"
                 className="text-red-600 font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               >
-                synapsesdynamics@gmail.com
+                bilderfassung@gmail.com
               </a>
             </div>
 
@@ -56,7 +61,7 @@ export default function Contact() {
                 <a
                   href="https://wa.me/237676978878"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="rounded-full bg-green-600 px-4 py-1 text-sm font-bold text-white hover:bg-green-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 >
                   WhatsApp

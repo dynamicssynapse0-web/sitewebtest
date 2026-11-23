@@ -27,7 +27,11 @@ function getDateTimestamp(date) {
 
 export function formatCompetitionDate(date) {
   if (!getDateTimestamp(date)) return date || 'Date à confirmer';
-  return new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR');
+  return new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 /**

@@ -15,7 +15,11 @@ function getCalendarTimestamp(date) {
 
 export function formatEventDate(date, season) {
   if (getCalendarTimestamp(date)) {
-    return new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR');
+    return new Date(`${date}T12:00:00`).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   }
 
   if (season) return `Saison ${season}`;

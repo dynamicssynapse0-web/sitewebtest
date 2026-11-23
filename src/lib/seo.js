@@ -1,7 +1,7 @@
 export const SITE_URL = 'https://bilderfassung.com';
 export const SITE_NAME = 'Bilderfassung';
 export const SITE_DESCRIPTION =
-  "L'œil du sport par Aubin Simo : photographies d'événements sportifs au Cameroun (football, basketball, athlétisme, boxe).";
+  "Bilderfassung - L'œil du sport par Aubin Simo - Je capture l'émotion du sport.";
 export const DEFAULT_OG_IMAGE = '/images/aubin-simo-photographe-football-CAN2027.jpg';
 
 export function absoluteUrl(path = '/') {

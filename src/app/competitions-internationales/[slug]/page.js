@@ -51,7 +51,7 @@ export default async function InternationalCompetitionPage({ params }) {
         <div className="absolute inset-0 bg-gradient-to-t from-blue-950 via-blue-950/45 to-blue-950/10" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-6xl px-4 pb-8 sm:px-6 sm:pb-12">
           <Link
-            href="/#competitions-internationales"
+            href="/competitions-internationales"
             className="mb-6 inline-flex text-sm font-semibold text-white/80 transition hover:text-white"
           >
             ← Retour aux compétitions

@@ -3,7 +3,7 @@ title: "Cameroun vs Namibie"
 competition: "Qualifications CAN 2027"
 date: "2027-11-12"
 time: "20h00"
-location: "Stade Japoma, Ville Douala "
+location: "Stade de Japoma , Douala"
 sport: "Football"
 coverImage: "/images/aubin-simo-getimages.jpg"
 images:
