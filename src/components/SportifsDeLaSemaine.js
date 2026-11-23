@@ -14,14 +14,16 @@ function PortraitCard({ portrait }) {
     <Link
       data-portrait-card
       href={`/sportifs-semaine/${portrait.id}`}
-      className={`group block h-full w-[86%] shrink-0 snap-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 sm:w-[62%] lg:w-auto ${
-        portrait.featured ? 'lg:col-span-7' : ''
+      className={`group block h-full w-[86%] shrink-0 snap-center rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 md:w-auto md:shrink md:snap-none ${
+        portrait.featured ? 'md:col-span-2 lg:col-span-12' : 'lg:col-span-6'
       }`}
     >
       <article className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-blue-900/40 shadow-lg transition-all duration-500 group-hover:-translate-y-1 group-hover:border-red-500/40 group-hover:shadow-2xl">
         <div
           className={`relative overflow-hidden ${
-            portrait.featured ? 'aspect-[4/5] sm:aspect-[16/10]' : 'aspect-[5/4]'
+            portrait.featured
+              ? 'aspect-[4/5] sm:aspect-[16/10] md:aspect-[21/9]'
+              : 'aspect-[5/4] sm:aspect-[4/3]'
           }`}
         >
           <Image
@@ -30,8 +32,8 @@ function PortraitCard({ portrait }) {
             fill
             sizes={
               portrait.featured
-                ? '(max-width: 640px) 86vw, (max-width: 1024px) 62vw, 58vw'
-                : '(max-width: 640px) 86vw, (max-width: 1024px) 62vw, 34vw'
+                ? '(max-width: 767px) 86vw, 100vw'
+                : '(max-width: 767px) 86vw, (max-width: 1023px) 50vw, 50vw'
             }
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
           />
@@ -44,26 +46,26 @@ function PortraitCard({ portrait }) {
           }`}
         >
           <div className="mb-3">
-            <span className="inline-flex max-w-full rounded-full bg-red-600 px-3 py-1 text-[10px] font-bold tracking-[0.14em] text-white">
+            <span className="inline-flex max-w-full flex-wrap break-words rounded-xl bg-red-600 px-3 py-1 text-[10px] font-bold leading-tight tracking-[0.14em] text-white">
               {badgeLabel}
             </span>
           </div>
 
           <h3
-            className={`font-extrabold leading-tight text-white ${
+            className={`break-words font-extrabold leading-tight text-white ${
               portrait.featured ? 'text-2xl sm:text-3xl' : 'text-lg sm:text-xl'
             }`}
           >
             {portrait.title}
           </h3>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-red-300 sm:text-xs">
+          <p className="mt-1 break-words text-[11px] font-semibold uppercase leading-snug tracking-wide text-red-300 sm:text-xs">
             {identite}
           </p>
           <blockquote
             className={`mt-3 border-l-2 border-red-500 pl-3 text-white/90 ${
               portrait.featured
                 ? 'text-sm leading-relaxed sm:text-base'
-                : 'line-clamp-3 text-xs leading-relaxed'
+                : 'text-xs leading-relaxed sm:text-sm'
             }`}
           >
             “{portrait.quote}”
@@ -157,7 +159,7 @@ export default function SportifsDeLaSemaine({ sportifs = [] }) {
         <div
           ref={carouselRef}
           onScroll={handleScroll}
-          className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-12 lg:overflow-visible lg:pb-0"
+          className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:snap-none md:overflow-visible md:pb-0 lg:grid-cols-12"
           aria-label="Carrousel des sportifs de la semaine"
         >
           {orderedPortraits.map((portrait) => (
@@ -165,12 +167,12 @@ export default function SportifsDeLaSemaine({ sportifs = [] }) {
           ))}
         </div>
 
-        <p className="mt-3 text-center text-xs font-medium text-blue-100/70 lg:hidden">
+        <p className="mt-3 text-center text-xs font-medium text-blue-100/70 md:hidden">
           ← Fais glisser pour découvrir les suivants
         </p>
 
         <div
-          className="mt-4 flex justify-center gap-3 lg:hidden"
+          className="mt-4 flex justify-center gap-3 md:hidden"
           role="group"
           aria-label="Pagination des sportifs de la semaine"
         >

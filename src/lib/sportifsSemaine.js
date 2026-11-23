@@ -26,7 +26,7 @@ export const portraits = [
     title: 'L’énergie du parquet',
     discipline: 'Basketball',
     badge: '02 - BASKETBALL',
-    nom: 'MANGUELE',
+    nom: 'MANGUE',
     poste: 'Meneur',
     competition: 'Basketball FIBA',
     quote: 'Un bel exemple d’énergie et d’engagement sur le terrain.',

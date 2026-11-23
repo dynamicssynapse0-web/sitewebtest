@@ -21,7 +21,7 @@
 
 ## Sportifs de la semaine
 - Entries live in `src/lib/sportifsSemaine.js`; photos are read server-side with `fs` from `public/images/sportifs-semaine/<id>/` (`.jpg/.jpeg/.png/.webp`, sorted). The first file is the home card cover, all files feed `/sportifs-semaine/[id]` and its client lightbox. To add a portrait, add an entry plus a folder with the same `id`; an empty/missing folder falls back to `DEFAULT_OG_IMAGE`.
-- `src/components/SportifsDeLaSemaine.js` is a client component: the home page passes it `getAllSportifs()` because the data helper reads the filesystem. On mobile it renders a scroll-snap carousel with dynamic pagination; on desktop it keeps the 12-column grid. Cards link to the portrait page (not straight to the event), show `badge` + photo count and `nom - poste - competition`, and the section CTA links to `/galerie`. The portrait page back link targets `/#sportifs-semaine`, the section id.
+- `src/components/SportifsDeLaSemaine.js` is a client component: the home page passes it `getAllSportifs()` because the data helper reads the filesystem. Below `md` it renders a scroll-snap carousel with dynamic pagination; from `md` up it uses a readable grid (featured card full width, two secondary cards side by side, 12 columns at `lg`). Cards link to the portrait page (not straight to the event), show `badge` + photo count and `nom - poste - competition`, and the section CTA links to `/galerie`. The portrait page back link targets `/#sportifs-semaine`, the section id.
 
 ## SEO
 - Site URL/canonical defaults and `pageMetadata()` live in `src/lib/seo.js`; per-route metadata inherits the `%s | Bilderfassung` template from `src/app/layout.js`.
