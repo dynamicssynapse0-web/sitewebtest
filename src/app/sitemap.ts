@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions } from '@/lib/internationalCompetitions';
 import { listeSports } from '@/lib/sports';
+import { portraits } from '@/lib/sportifsSemaine';
 import { absoluteUrl } from '@/lib/seo';
 
 export const revalidate = 86400;
@@ -33,6 +34,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  const portraitPages: MetadataRoute.Sitemap = portraits.map(({ id }) => ({
+    url: absoluteUrl(`/sportifs-semaine/${id}`),
+    lastModified: now,
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }));
+
   const eventPages: MetadataRoute.Sitemap = getAllEvents().map((event) => ({
     url: absoluteUrl(`/evenements/${event.slug}`),
     lastModified: lastModifiedFromDate(event.date),
@@ -49,5 +57,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   );
 
-  return [...staticPages, ...sportPages, ...eventPages, ...competitionPages];
+  return [
+    ...staticPages,
+    ...sportPages,
+    ...portraitPages,
+    ...eventPages,
+    ...competitionPages,
+  ];
 }

@@ -19,6 +19,10 @@
 - Image paths are plain strings under `public/images`, not imports. The `/images/placeholder.jpg` fallback was missing; fallbacks now use `DEFAULT_OG_IMAGE` from `src/lib/seo.js`. One filename contains a non-ASCII `è` (`aubinèsimo-lions.jpg`) and its content reference matches exactly — copy the string verbatim when editing. Verify paths against `public/images` when adding content.
 - UI copy and content are French; keep new copy in French.
 
+## Sportifs de la semaine
+- Entries live in `src/lib/sportifsSemaine.js`; photos are read server-side with `fs` from `public/images/sportifs-semaine/<id>/` (`.jpg/.jpeg/.png/.webp`, sorted). The first file is the home card cover, all files feed `/sportifs-semaine/[id]` and its client lightbox. To add a portrait, add an entry plus a folder with the same `id`; an empty/missing folder falls back to `DEFAULT_OG_IMAGE`.
+- `src/components/SportifsDeLaSemaine.js` renders the home section and links cards to the portrait page (not straight to the event). The portrait page back link targets `/#sportifs-semaine`, the section id. No copy of this component exists in the stale root `components/`.
+
 ## SEO
 - Site URL/canonical defaults and `pageMetadata()` live in `src/lib/seo.js`; per-route metadata inherits the `%s | Bilderfassung` template from `src/app/layout.js`.
 - `src/app/sitemap.ts` and `src/app/robots.ts` are the only TypeScript files, hence `tsconfig.json` and the `@types/*` devDependencies in an otherwise JS project. Sitemap URLs for sports come from `listeSports` in `src/lib/sports.js`, shared with `/sports`.
