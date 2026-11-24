@@ -93,8 +93,8 @@ export default function Gallery({
               type="button"
               onClick={() => setIndex(position)}
               aria-label={`Ouvrir la photo ${position + 1} sur ${photos.length} : ${photo.legend}`}
-              className={`group relative w-full overflow-hidden rounded-2xl border border-white/10 bg-gray-900 text-left shadow-lg transition-all duration-500 hover:-translate-y-1 hover:border-red-500/50 hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
-                isMasonry ? 'break-inside-avoid' : 'aspect-[4/3]'
+              className={`group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-900 text-left shadow-lg transition-all duration-500 hover:-translate-y-1 hover:border-red-500/50 hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 ${
+                isMasonry ? 'break-inside-avoid' : ''
               }`}
             >
               <Image
