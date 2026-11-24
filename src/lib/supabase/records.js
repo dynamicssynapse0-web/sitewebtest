@@ -112,6 +112,13 @@ export function sortByDateDesc(items = []) {
   );
 }
 
+// Exclut les anciennes lignes vides ou « Sans titre » qui pollueraient
+// l'administration et les pages publiques.
+export function hasValidTitle(item) {
+  const title = String(item?.title ?? item?.titre ?? '').trim();
+  return Boolean(title) && title.toLocaleLowerCase('fr') !== 'sans titre';
+}
+
 export function toBoolean(value) {
   if (value === true) return true;
   return ['true', '1', 'oui', 'vrai', 'yes'].includes(

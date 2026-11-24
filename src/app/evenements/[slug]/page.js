@@ -4,7 +4,7 @@ import Gallery from '@/components/Gallery';
 import { formatEventDate, getEventBySlug } from '@/lib/events';
 import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;

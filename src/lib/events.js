@@ -3,10 +3,16 @@ import path from 'path';
 import matter from 'gray-matter';
 import { getRemoteArticles } from './supabase/content';
 import {
+  hasValidTitle,
   mergeCollections,
   normalizeImages,
   sortByDateDesc,
 } from './supabase/records';
+
+function isValidEvent(item) {
+  if (!hasValidTitle(item)) return false;
+  return item.source !== 'supabase' || item.type === 'event';
+}
 
 const eventsDirectory = path.join(process.cwd(), 'content/events');
 
@@ -56,7 +62,9 @@ export async function getAllEvents() {
     getRemoteArticles('event'),
   ]);
 
-  return sortByDateDesc(mergeCollections(local, remote));
+  return sortByDateDesc(
+    mergeCollections(local.filter(isValidEvent), remote.filter(isValidEvent))
+  );
 }
 
 export async function getEventBySlug(slug) {

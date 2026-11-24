@@ -5,7 +5,15 @@ import LogoutButton from '@/components/admin/LogoutButton';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
-import { getUploadTimestamp } from '@/lib/upload';
+import { hasValidTitle } from '@/lib/supabase/records';
+
+function isArticleOfType(type) {
+  return (row) =>
+    hasValidTitle(row) &&
+    String(row.type ?? '')
+      .trim()
+      .toLocaleLowerCase('fr') === type;
+}
 
 const EMPTY_ITEMS = {
   event: [],
@@ -15,7 +23,7 @@ const EMPTY_ITEMS = {
   portrait_exclusif: [],
 };
 
-async function fetchRows(supabase, table, filters = {}, order) {
+async function fetchRows(supabase, table, filters = {}, order, validate) {
   if (!supabase) return [];
 
   try {
@@ -23,12 +31,13 @@ async function fetchRows(supabase, table, filters = {}, order) {
     Object.entries(filters).forEach(([column, value]) => {
       query = query.eq(column, value);
     });
-    if (order) query = query.order(order, { ascending: true });
+    if (order) query = query.order(order, { ascending: order === 'ordre' });
 
     const { data, error } = await query;
     if (error || !Array.isArray(data)) return [];
 
-    return toPlainRows(data);
+    const rows = toPlainRows(data);
+    return typeof validate === 'function' ? rows.filter(validate) : rows;
   } catch {
     // Table ou colonne manquante : la rubrique s'affiche simplement vide.
     return [];
@@ -42,8 +51,20 @@ async function fetchAllItems() {
 
     const [events, internationals, sportifs, moments, portraits] =
       await Promise.all([
-        fetchRows(supabase, 'articles', { type: 'event' }, 'date'),
-        fetchRows(supabase, 'articles', { type: 'international' }, 'date'),
+        fetchRows(
+          supabase,
+          'articles',
+          { type: 'event' },
+          'date',
+          isArticleOfType('event')
+        ),
+        fetchRows(
+          supabase,
+          'articles',
+          { type: 'international' },
+          'date',
+          isArticleOfType('international')
+        ),
         fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
         fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
         fetchRows(
@@ -119,12 +140,10 @@ export default async function AdminPage() {
   }
 
   const initial = await fetchAllItems();
-  const timestamp = getUploadTimestamp();
 
   return (
     <AdminDashboard
       email={safeText(context.user?.email)}
-      uploadTimestamp={Number.isFinite(timestamp) ? timestamp : 0}
       initial={toPlainJson(initial)}
     />
   );

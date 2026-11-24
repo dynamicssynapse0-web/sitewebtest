@@ -11,7 +11,7 @@ import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export default async function Home() {
   const [

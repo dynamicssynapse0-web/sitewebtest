@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
-import { uploadFileBase } from '@/lib/upload';
+import { buildUniqueUploadName } from '@/lib/upload';
 import { compressImageForUpload } from '@/lib/imageCompression';
 import {
   decodeMaybeJson,
@@ -216,7 +216,7 @@ function FieldInput({ field, value, onChange }) {
   return <input {...common} type={field.type || 'text'} />;
 }
 
-export default function AdminDashboard({ email, uploadTimestamp, initial }) {
+export default function AdminDashboard({ email, initial }) {
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [activeKey, setActiveKey] = useState(null);
@@ -280,25 +280,33 @@ export default function AdminDashboard({ email, uploadTimestamp, initial }) {
 
     const uploaded = [];
     let position = 0;
-    const nameBase = uploadFileBase(form.title || section.key);
     const defaultAlt = `Aubin Simo - Bilderfassung ${form.title || ''}`.trim();
     const altText = String(form._alt || '').trim() || defaultAlt;
 
-    for (const file of newFiles) {
+    for (const source of newFiles) {
       position += 1;
-      const optimized = await compressImageForUpload(file);
-      const fileName = `aubin-simo-bilderfassung-${nameBase}-${uploadTimestamp + position}.${optimized.extension}`;
+      const optimized = await compressImageForUpload(source);
+      const fileName = buildUniqueUploadName({
+        title: form.title || section.key,
+        index: position,
+        extension: optimized.extension,
+      });
       const path = `${section.key}/${fileName}`;
+
+      // Le fichier envoyé porte le bon type MIME (WebP/JPEG après compression).
+      const file = new File([optimized.blob], fileName, {
+        type: optimized.blob.type || source.type || 'image/jpeg',
+      });
 
       const { error: uploadError } = await supabase.storage
         .from(SUPABASE_MEDIA_BUCKET)
-        .upload(path, optimized.blob, {
-          contentType: optimized.blob.type || file.type || 'image/jpeg',
-          upsert: false,
+        .upload(path, file, {
+          upsert: true,
+          contentType: file.type,
         });
 
       if (uploadError) {
-        throw new Error(`Upload de ${file.name} : ${uploadError.message}`);
+        throw new Error(`Upload de ${source.name} : ${uploadError.message}`);
       }
 
       const { data } = supabase.storage
@@ -308,7 +316,7 @@ export default function AdminDashboard({ email, uploadTimestamp, initial }) {
       uploaded.push({
         src: data.publicUrl,
         alt: altText,
-        legend: form.title || file.name,
+        legend: form.title || source.name,
         credit: 'Aubin Simo',
       });
     }

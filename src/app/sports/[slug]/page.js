@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { formatEventDate, getAllEvents } from '@/lib/events';
 import { pageMetadata } from '@/lib/seo';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 // SEO dynamique
 export async function generateMetadata({ params }) {

@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { decodeMaybeJson, slugify } from '@/lib/supabase/records';
@@ -20,6 +21,43 @@ const IMAGE_COLUMNS = [
   'photos',
   'image_urls',
 ];
+
+// Routes publiques invalidées après chaque création / modification / suppression.
+const PUBLIC_PATHS = [
+  '/',
+  '/evenements',
+  '/evenements/[slug]',
+  '/competitions-internationales',
+  '/competitions-internationales/[slug]',
+  '/sportifs-semaine/[id]',
+  '/galerie',
+  '/sports/[slug]',
+  '/sitemap.xml',
+];
+
+function revalidatePublicContent(row, table) {
+  try {
+    const paths = new Set(PUBLIC_PATHS);
+    const plainRow = row && typeof row === 'object' ? row : {};
+    const slug = slugify(plainRow.slug || plainRow.title);
+
+    if (table === 'articles' && slug) {
+      paths.add(
+        plainRow.type === 'international'
+          ? `/competitions-internationales/${slug}`
+          : `/evenements/${slug}`
+      );
+    }
+    if (table === 'sportifs_semaine') {
+      if (slug) paths.add(`/sportifs-semaine/${slug}`);
+      if (plainRow.id) paths.add(`/sportifs-semaine/${plainRow.id}`);
+    }
+
+    paths.forEach((path) => revalidatePath(path));
+  } catch {
+    // L'invalidation du cache ne doit jamais faire échouer une écriture réussie.
+  }
+}
 
 function failure(error) {
   return { ok: false, error: errorText(error) };
@@ -91,14 +129,14 @@ function toStoragePath(source) {
   return path;
 }
 
-async function getMediaSources(supabase, table, id) {
+async function getDeletedRow(supabase, table, id) {
   const { data: row } = await supabase
     .from(table)
     .select('*')
     .eq('id', id)
     .maybeSingle();
 
-  return collectSources(row);
+  return row ?? {};
 }
 
 async function removeUnusedMedia(supabase, sources) {
@@ -158,6 +196,7 @@ async function saveItem(table, row) {
 
     if (result.error) throw new Error(result.error.message);
 
+    revalidatePublicContent(result.data, table);
     return { ok: true, data: toPlainJson(result.data) };
   } catch (error) {
     return failure(error);
@@ -172,11 +211,14 @@ async function deleteItem(table, id) {
 
     const supabase = await requireAdmin();
 
-    // Capture des sources avant la suppression de la ligne.
-    const sources = await getMediaSources(supabase, table, id);
+    // Capture de la ligne et de ses sources avant la suppression.
+    const deletedRow = await getDeletedRow(supabase, table, id);
+    const sources = collectSources(deletedRow);
 
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) throw new Error(error.message);
+
+    revalidatePublicContent(deletedRow, table);
 
     // Nettoyage Storage après la suppression : un échec ici ne doit pas annuler
     // une suppression déjà effectuée (seuls des fichiers orphelins resteraient).

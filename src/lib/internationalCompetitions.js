@@ -3,10 +3,16 @@ import path from 'path';
 import matter from 'gray-matter';
 import { getRemoteArticles } from './supabase/content';
 import {
+  hasValidTitle,
   mergeCollections,
   normalizeImages,
   sortByDateDesc,
 } from './supabase/records';
+
+function isValidCompetition(item) {
+  if (!hasValidTitle(item)) return false;
+  return item.source !== 'supabase' || item.type === 'international';
+}
 
 const competitionsDirectory = path.join(
   process.cwd(),
@@ -56,7 +62,12 @@ export async function getAllInternationalCompetitions() {
     getRemoteArticles('international'),
   ]);
 
-  return sortByDateDesc(mergeCollections(local, remote));
+  return sortByDateDesc(
+    mergeCollections(
+      local.filter(isValidCompetition),
+      remote.filter(isValidCompetition)
+    )
+  );
 }
 
 export async function getInternationalCompetitionBySlug(slug) {

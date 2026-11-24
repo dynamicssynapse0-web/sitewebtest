@@ -1,6 +1,7 @@
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import { getPublicSupabase } from './publicClient';
 import {
+  hasValidTitle,
   normalizeImages,
   slugify,
   sortByDateDesc,
@@ -34,27 +35,65 @@ async function fetchRows(table, filters = {}, order) {
   return unordered.data ?? [];
 }
 
+// Renvoie la première valeur réellement renseignée (chaîne non vide ou tableau non vide).
+function firstValue(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'string' && !value.trim()) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    return value;
+  }
+  return '';
+}
+
+// Les anciennes lignes sans titre ou avec un autre type ne doivent jamais
+// apparaître dans les listings publics ni dans l'administration.
+export function isValidArticleRow(row, type) {
+  if (!row || typeof row !== 'object') return false;
+  const rowType = String(row.type ?? '')
+    .trim()
+    .toLocaleLowerCase('fr');
+  if (rowType !== String(type).trim().toLocaleLowerCase('fr')) return false;
+  return hasValidTitle(row);
+}
+
 export function mapArticle(row, type) {
+  const title = String(row.title ?? row.titre ?? '').trim() || 'Sans titre';
   const images = normalizeImages(
-    row.images ?? row.photos ?? row.image_urls,
-    row.title || 'Photo'
+    firstValue(
+      row.images,
+      row.photos,
+      row.image_urls,
+      row.image,
+      row.image_url,
+      row.cover_image
+    ),
+    title
   );
-  const slug = slugify(row.slug || row.title || row.titre) || `${type}-${row.id}`;
+  const slug = slugify(row.slug || title) || `${type}-${row.id}`;
+  const coverImage =
+    firstValue(
+      row.cover_image,
+      row.coverImage,
+      row.image,
+      row.image_url,
+      images[0]?.src
+    ) || DEFAULT_OG_IMAGE;
 
   return {
     id: row.id ?? null,
     slug,
-    title: row.title || row.titre || 'Sans titre',
+    title,
     type,
-    competition: row.competition || '',
-    sport: row.sport || '',
+    competition: firstValue(row.competition),
+    sport: firstValue(row.sport, row.discipline),
     date: toIsoDate(row.date),
-    time: row.time || row.heure || '',
-    location: row.location || row.lieu || '',
-    season: row.season || row.saison || '',
-    excerpt: row.excerpt || row.resume || row.description || '',
-    content: row.content || row.contenu || row.excerpt || '',
-    coverImage: row.cover_image || row.coverImage || images[0]?.src || DEFAULT_OG_IMAGE,
+    time: firstValue(row.time, row.heure),
+    location: firstValue(row.location, row.lieu),
+    season: firstValue(row.season, row.saison),
+    excerpt: firstValue(row.excerpt, row.resume, row.description),
+    content: firstValue(row.content, row.contenu, row.excerpt),
+    coverImage,
     images,
     source: 'supabase',
   };
@@ -113,7 +152,9 @@ export async function getRemoteArticles(type) {
     { type },
     { column: 'date', ascending: false }
   );
-  return sortByDateDesc(rows.map((row) => mapArticle(row, type)));
+  return sortByDateDesc(
+    rows.filter((row) => isValidArticleRow(row, type)).map((row) => mapArticle(row, type))
+  );
 }
 
 export async function getRemoteSportifs() {

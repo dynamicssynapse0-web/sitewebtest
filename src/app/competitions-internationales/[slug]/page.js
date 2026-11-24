@@ -9,7 +9,7 @@ import {
 } from '@/lib/internationalCompetitions';
 import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const competitions = await getAllInternationalCompetitions();

@@ -5,6 +5,8 @@ import PortraitLightbox from '@/components/PortraitLightbox';
 import { getSportifById, portraits } from '@/lib/sportifsSemaine';
 import { pageMetadata } from '@/lib/seo';
 
+export const revalidate = 60;
+
 export function generateStaticParams() {
   return portraits.map(({ id }) => ({ id }));
 }
