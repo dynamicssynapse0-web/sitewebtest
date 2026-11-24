@@ -1,11 +1,9 @@
-import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
 import MomentFortSection from '@/components/MomentFortSection';
 import ImagesSportSection from '@/components/ImagesSportSection';
 import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
-import { getActiveSportDisciplines } from '@/lib/categoriesSport';
 import { getAllEvents } from '@/lib/events';
 import { getImagesSportDisciplines } from '@/lib/imagesSport';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
@@ -25,7 +23,6 @@ export default async function Home() {
     momentsForts,
     portraitsExclusifs,
     imagesSport,
-    sportsMenu,
   ] = await Promise.all([
     getAllEvents(),
     getAllInternationalCompetitions(),
@@ -33,12 +30,10 @@ export default async function Home() {
     getMomentsForts(),
     getPortraitsExclusifs(),
     getImagesSportDisciplines(),
-    getActiveSportDisciplines(),
   ]);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <Navbar sportsMenu={sportsMenu} />
       <Hero />
       
       <div id="evenements" className="max-w-7xl mx-auto px-4 py-16">

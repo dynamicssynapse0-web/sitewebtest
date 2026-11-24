@@ -36,6 +36,40 @@ export async function fetchRows(table, filters = {}, order) {
   return unordered.data ?? [];
 }
 
+// Décode un champ d'images même lorsqu'il a été sérialisé plusieurs fois
+// (ex. "\"[{\\\"src\\\":...}]\""). Les lignes historiques peuvent contenir
+// une chaîne JSON dans une chaîne JSON ; on normalize toujours vers un tableau.
+const MAX_JSON_DECODE_PASSES = 6;
+
+export function parseImagesField(raw) {
+  let value = raw;
+
+  for (
+    let pass = 0;
+    pass < MAX_JSON_DECODE_PASSES && typeof value === 'string';
+    pass += 1
+  ) {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    const startsLikeJson =
+      trimmed.startsWith('[') ||
+      trimmed.startsWith('{') ||
+      trimmed.startsWith('"');
+    if (!startsLikeJson) break;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed === value) break;
+      value = parsed;
+    } catch {
+      break;
+    }
+  }
+
+  return value;
+}
+
 // Renvoie la première valeur réellement renseignée (chaîne non vide ou tableau non vide).
 function firstValue(...values) {
   for (const value of values) {
@@ -61,13 +95,15 @@ export function isValidArticleRow(row, type) {
 export function mapArticle(row, type) {
   const title = String(row.title ?? row.titre ?? '').trim() || 'Sans titre';
   const images = normalizeImages(
-    firstValue(
-      row.images,
-      row.photos,
-      row.image_urls,
-      row.image,
-      row.image_url,
-      row.cover_image
+    parseImagesField(
+      firstValue(
+        row.images,
+        row.photos,
+        row.image_urls,
+        row.image,
+        row.image_url,
+        row.cover_image
+      )
     ),
     title
   );
@@ -101,7 +137,10 @@ export function mapArticle(row, type) {
 }
 
 export function mapSportif(row, index = 0) {
-  const images = normalizeImages(row.images ?? row.photos, row.title || 'Portrait');
+  const images = normalizeImages(
+    parseImagesField(row.images ?? row.photos),
+    row.title || 'Portrait'
+  );
   const slug =
     slugify(row.slug || row.title || row.player_name || row.nom) ||
     `sportif-${index + 1}`;
@@ -128,7 +167,7 @@ export function mapSportif(row, index = 0) {
 
 export function mapVitrine(row, section, index = 0) {
   const images = normalizeImages(
-    row.images ?? row.image ?? row.image_url,
+    parseImagesField(row.images ?? row.image ?? row.image_url),
     row.title || 'Photo'
   );
   const image = images[0] || null;
@@ -184,11 +223,13 @@ export async function getRemoteVitrine(section) {
 export function mapImagesSport(row, index = 0) {
   const title = String(row.title ?? row.titre ?? '').trim() || 'Sans titre';
   const secondaryImages = normalizeImages(
-    firstValue(row.images, row.photos, row.image_urls),
+    parseImagesField(firstValue(row.images, row.photos, row.image_urls)),
     title
   );
   const coverImages = normalizeImages(
-    firstValue(row.cover_image, row.coverImage, row.image, row.image_url),
+    parseImagesField(
+      firstValue(row.cover_image, row.coverImage, row.image, row.image_url)
+    ),
     title
   );
   const coverImage =

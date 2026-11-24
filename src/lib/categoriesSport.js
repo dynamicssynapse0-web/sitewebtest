@@ -1,6 +1,8 @@
 import { DEFAULT_OG_IMAGE } from './seo';
-import { fetchRows } from './supabase/content';
+import { fetchRows, parseImagesField } from './supabase/content';
 import { mergeImages, normalizeImages, slugify } from './supabase/records';
+
+export { parseImagesField } from './supabase/content';
 
 // Limite métier : une couverture + 4 images secondaires maximum.
 export const MAX_CATEGORY_IMAGES = 4;
@@ -34,13 +36,18 @@ export function mapCategorySport(row, index = 0) {
     String(row.sous_discipline ?? row.sousDiscipline ?? '').trim() || 'Sous-discipline';
   const disciplineSlug = slugify(discipline);
   const sousDisciplineSlug = slugify(sousDiscipline) || `sous-discipline-${index + 1}`;
+  const compositeSlug =
+    slugify(row.slug || `${discipline}-${sousDiscipline}`) ||
+    `${disciplineSlug}-${sousDisciplineSlug}`;
 
   const secondaryImages = normalizeImages(
-    row.images ?? row.photos ?? row.image_urls,
+    parseImagesField(row.images ?? row.photos ?? row.image_urls),
     sousDiscipline
   ).slice(0, MAX_CATEGORY_IMAGES);
   const coverImages = normalizeImages(
-    row.cover_image ?? row.coverImage ?? row.image ?? row.image_url,
+    parseImagesField(
+      row.cover_image ?? row.coverImage ?? row.image ?? row.image_url
+    ),
     sousDiscipline
   );
   const coverImage =
@@ -54,9 +61,7 @@ export function mapCategorySport(row, index = 0) {
     sousDiscipline,
     sousDisciplineSlug,
     // Slug composite unique : discipline-sous-discipline.
-    slug:
-      slugify(row.slug || `${discipline}-${sousDiscipline}`) ||
-      `${disciplineSlug}-${sousDisciplineSlug}`,
+    slug: compositeSlug,
     title: sousDiscipline,
     coverImage,
     cover: coverImages[0] || images[0] || null,
@@ -64,7 +69,9 @@ export function mapCategorySport(row, index = 0) {
     images,
     alt: coverImages[0]?.alt || `Photo ${discipline} — ${sousDiscipline}`,
     order: Number(row.ordre ?? row.order ?? 0) || 0,
-    href: `/sports/${disciplineSlug}/${sousDisciplineSlug}`,
+    // URL complète avec le slug composite ; la page accepte aussi la version courte.
+    href: `/sports/${disciplineSlug}/${compositeSlug}`,
+    shortHref: `/sports/${disciplineSlug}/${sousDisciplineSlug}`,
     source: 'supabase',
   };
 }

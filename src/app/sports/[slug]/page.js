@@ -65,6 +65,37 @@ export default async function SportPage({ params }) {
           ← Retour aux sports
         </Link>
 
+        {sport?.categories?.length ? (
+          <section className="mb-10">
+            <h2 className="text-lg font-bold text-white mb-4">Sous-disciplines</h2>
+            <div className="flex flex-wrap gap-3">
+              {sport.categories.map((category) => (
+                <Link
+                  key={category.id || category.href}
+                  href={category.href}
+                  className="inline-flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-white hover:bg-white/20 transition"
+                >
+                  <span className="relative h-12 w-16 overflow-hidden rounded-lg">
+                    <Image
+                      src={category.coverImage}
+                      alt={category.sousDiscipline}
+                      fill
+                      className="object-cover"
+                    />
+                  </span>
+                  <span>
+                    <span className="block font-bold">{category.sousDiscipline}</span>
+                    <span className="block text-xs text-gray-300">
+                      {category.images?.length || 0} photo
+                      {(category.images?.length || 0) > 1 ? 's' : ''}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <header className="max-w-2xl mb-12">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
             Photographies <span className="text-yellow-500">{nomSport}</span>

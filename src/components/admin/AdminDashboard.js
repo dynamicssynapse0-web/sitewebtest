@@ -9,17 +9,13 @@ import { getBrowserSupabase } from '@/lib/supabase/client';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 import { buildUniqueUploadName, validateUploadFile } from '@/lib/upload';
 import { compressImageForUpload } from '@/lib/imageCompression';
-import {
-  decodeMaybeJson,
-  normalizeImages,
-  slugify,
-  toIsoDate,
-} from '@/lib/supabase/records';
+import { normalizeImages, slugify, toIsoDate } from '@/lib/supabase/records';
 import { safeText } from '@/lib/supabase/serialization';
 import { listeSports } from '@/lib/sports';
 import {
   CATEGORY_DISCIPLINES,
   MAX_CATEGORY_IMAGES,
+  parseImagesField,
 } from '@/lib/categoriesSport';
 import {
   deleteArticle,
@@ -181,7 +177,7 @@ function rowToForm(section, row) {
     'Photo';
   const cover = hasCover
     ? normalizeImages(
-        decodeMaybeJson(
+        parseImagesField(
           safeRow.cover_image ?? safeRow.image ?? safeRow.image_url
         ),
         fallbackTitle
@@ -189,11 +185,11 @@ function rowToForm(section, row) {
     : null;
   const images = hasCover
     ? normalizeImages(
-        decodeMaybeJson(safeRow.images ?? safeRow.photos),
+        parseImagesField(safeRow.images ?? safeRow.photos),
         fallbackTitle
       )
     : normalizeImages(
-        decodeMaybeJson(safeRow.images ?? safeRow.image ?? safeRow.image_url),
+        parseImagesField(safeRow.images ?? safeRow.image ?? safeRow.image_url),
         fallbackTitle
       );
 
@@ -279,13 +275,13 @@ function actionsFor(key) {
 
 function itemSubtitle(section, row) {
   if (section.key === 'images_sport') {
-    const count = normalizeImages(decodeMaybeJson(row.images ?? row.photos)).length;
+    const count = normalizeImages(parseImagesField(row.images ?? row.photos)).length;
     return [safeText(row.description), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
       .filter(Boolean)
       .join(' — ');
   }
   if (section.key === 'categories_sport') {
-    const count = normalizeImages(decodeMaybeJson(row.images)).length;
+    const count = normalizeImages(parseImagesField(row.images)).length;
     return [safeText(row.slug), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
       .filter(Boolean)
       .join(' — ');
@@ -298,7 +294,7 @@ function itemSubtitle(section, row) {
   }
   if (section.key === 'moment_fort' || section.key === 'portrait_exclusif') {
     const count = section.key === 'moment_fort'
-      ? normalizeImages(decodeMaybeJson(row.images ?? row.image ?? row.image_url)).length
+      ? normalizeImages(parseImagesField(row.images ?? row.image ?? row.image_url)).length
       : 0;
     return [
       safeText(row.subtitle),
@@ -712,7 +708,8 @@ export default function AdminDashboard({ email, initial }) {
           sous_discipline: uploadTitle,
           slug: slugify(`${form.discipline}-${uploadTitle}`),
           cover_image: coverImage,
-          images: JSON.stringify(allImages),
+          // Tableaux envoyés tels quels : le serveur sérialise une seule fois.
+          images: allImages,
           ordre: Number(form.ordre) || 0,
         };
       } else if (activeSection.key === 'international' || activeSection.key === 'event') {

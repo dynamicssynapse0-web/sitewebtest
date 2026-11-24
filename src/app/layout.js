@@ -2,6 +2,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
 import ImageProtection from '@/components/ImageProtection';
+import Navbar from '@/components/Navbar';
+import { getActiveSportDisciplines } from '@/lib/categoriesSport';
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -42,11 +44,14 @@ export const metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const sportsMenu = await getActiveSportDisciplines();
+
   return (
     <html lang="fr">
       <body className={inter.className}>
         <ImageProtection />
+        <Navbar sportsMenu={sportsMenu} />
         {children}
         <Footer />
       </body>

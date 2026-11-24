@@ -90,6 +90,18 @@ export default async function Sports() {
                   </div>
 
                   <div className="p-5 sm:p-6 flex flex-col flex-1">
+                    {sport.categories?.length ? (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {sport.categories.map((category) => (
+                          <span
+                            key={category.id || category.href}
+                            className="rounded-full bg-blue-950 px-3 py-1 text-[11px] font-bold text-white"
+                          >
+                            {category.sousDiscipline}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 group-hover:text-yellow-600 transition-colors">
                       {sport.nom || sport.title}
                     </h2>

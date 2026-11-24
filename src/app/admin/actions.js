@@ -6,8 +6,9 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import {
   canonicalDiscipline,
   MAX_CATEGORY_IMAGES,
+  parseImagesField,
 } from '@/lib/categoriesSport';
-import { decodeMaybeJson, slugify } from '@/lib/supabase/records';
+import { slugify } from '@/lib/supabase/records';
 import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 
@@ -113,7 +114,7 @@ function collectSources(row) {
   const sources = new Set();
 
   IMAGE_COLUMNS.forEach((column) => {
-    const value = decodeMaybeJson(row?.[column]);
+    const value = parseImagesField(row?.[column]);
     const list = Array.isArray(value) ? value : value ? [value] : [];
 
     list.forEach((item) => {
@@ -296,7 +297,7 @@ export async function saveCategorySport(row) {
       throw new Error('Une image de couverture est obligatoire.');
     }
 
-    const decodedImages = decodeMaybeJson(row?.images);
+    const decodedImages = parseImagesField(row?.images);
     const images = Array.isArray(decodedImages)
       ? decodedImages
       : decodedImages
@@ -313,8 +314,10 @@ export async function saveCategorySport(row) {
       discipline,
       sous_discipline: sousDiscipline,
       slug: slugify(`${discipline}-${sousDiscipline}`),
+      // `images` est une colonne jsonb : on envoie un tableau, pas une chaîne
+      // déjà sérialisée (sinon Supabase stocke un JSON string double-encodé).
       cover_image: coverImage,
-      images: JSON.stringify(images),
+      images,
     });
   } catch (error) {
     return failure(error);

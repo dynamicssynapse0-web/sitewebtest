@@ -1,3 +1,4 @@
+import { getAllCategoriesSport } from './categoriesSport';
 import { getImagesSportDisciplines } from './imagesSport';
 import { DEFAULT_OG_IMAGE } from './seo';
 import { slugify } from './supabase/records';
@@ -54,6 +55,7 @@ export function mergeSports(disciplines = []) {
       imageCount: 0,
       order: 0,
       source: 'base',
+      categories: [],
     });
   });
 
@@ -93,6 +95,7 @@ export function mergeSports(disciplines = []) {
         imageCount: Number(discipline.imageCount ?? images.length) || 0,
         order: Number(discipline.order ?? base.order ?? 0) || 0,
         source: discipline.source || 'supabase',
+        categories: discipline.categories || base.categories || [],
       });
     });
 
@@ -100,8 +103,63 @@ export function mergeSports(disciplines = []) {
 }
 
 export async function getAllSports() {
-  const disciplines = await getImagesSportDisciplines();
-  return mergeSports(disciplines);
+  const [disciplines, categories] = await Promise.all([
+    getImagesSportDisciplines(),
+    getAllCategoriesSport(),
+  ]);
+
+  // Les catégories `categories_sport` alimentent aussi la couverture et le
+  // compteur de photos de chaque discipline (ex. Football → MTN Elite One).
+  const categoryDisciplines = categories.map((category) => {
+    const allImages = category.images || [];
+    return {
+      slug: category.disciplineSlug,
+      title: category.discipline,
+      description: `Photographies de ${category.discipline} — ${category.sousDiscipline}.`,
+      coverImage: category.coverImage,
+      images: allImages,
+      secondaryImages: category.secondaryImages,
+      imageCount: allImages.length,
+      alt: category.alt,
+      order: category.order,
+      source: 'categories_sport',
+      categories: [category],
+    };
+  });
+
+  const merged = mergeSports([...disciplines, ...categoryDisciplines]);
+
+  return merged.map((sport) => {
+    const sportCategories = categories.filter(
+      (category) => category.disciplineSlug === sport.slug
+    );
+    if (sportCategories.length === 0) return sport;
+
+    const categoryImages = sportCategories.flatMap((category) => category.images || []);
+    const allImages = [...(sport.images || []), ...categoryImages].filter(
+      (image, index, list) =>
+        image?.src && list.findIndex((item) => item?.src === image.src) === index
+    );
+    const coverFromCategories =
+      sportCategories.find((category) => category.coverImage)?.coverImage || '';
+
+    return {
+      ...sport,
+      coverImage:
+        sport.source === 'base' && coverFromCategories
+          ? coverFromCategories
+          : sport.coverImage,
+      image:
+        sport.source === 'base' && coverFromCategories
+          ? coverFromCategories
+          : sport.image,
+      images: allImages,
+      imageCount: allImages.length,
+      categories: sportCategories.sort(
+        (a, b) => a.order - b.order || a.sousDiscipline.localeCompare(b.sousDiscipline, 'fr')
+      ),
+    };
+  });
 }
 
 export async function getSportBySlug(slug) {
