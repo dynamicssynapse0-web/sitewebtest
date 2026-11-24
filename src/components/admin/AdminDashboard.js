@@ -103,7 +103,7 @@ const SECTIONS = [
     label: 'Les moments forts',
     hint: 'vitrine_items · moment_fort',
     icon: '⚡',
-    multiple: false,
+    multiple: true,
     fields: [
       { name: 'title', label: 'Titre / Légende', required: true },
       { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
@@ -236,7 +236,14 @@ function itemSubtitle(section, row) {
       .join(' — ');
   }
   if (section.key === 'moment_fort' || section.key === 'portrait_exclusif') {
-    return [safeText(row.subtitle), row.ordre ? `Ordre ${safeText(row.ordre)}` : '']
+    const count = section.key === 'moment_fort'
+      ? normalizeImages(decodeMaybeJson(row.images ?? row.image ?? row.image_url)).length
+      : 0;
+    return [
+      safeText(row.subtitle),
+      count ? `${count} photo${count > 1 ? 's' : ''}` : '',
+      row.ordre ? `Ordre ${safeText(row.ordre)}` : '',
+    ]
       .filter(Boolean)
       .join(' — ');
   }

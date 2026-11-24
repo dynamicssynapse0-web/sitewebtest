@@ -139,6 +139,7 @@ export function mapVitrine(row, section, index = 0) {
     subtitle: row.subtitle || row.sous_titre || '',
     section,
     order: Number(row.ordre ?? row.order ?? 0) || 0,
+    images,
     image: image?.src || row.image || row.image_url || '',
     alt: row.alt || image?.alt || row.title || 'Photographie sportive',
     legend: row.legend || image?.legend || row.title || '',

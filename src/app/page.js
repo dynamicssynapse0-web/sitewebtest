@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
+import MomentFortSection from '@/components/MomentFortSection';
 import ImagesSportSection from '@/components/ImagesSportSection';
 import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
 import { getAllEvents } from '@/lib/events';
@@ -150,48 +151,7 @@ export default async function Home() {
           )}
         </div>
         {/* Galerie : moments forts */}
-<section className="mb-20">
-  <div className="text-center mb-8">
-    <p className="text-red-600 font-semibold uppercase tracking-widest text-sm mb-2">
-      AU COEUR DE L&apos;ACTION
-    </p>
-    <h2 className="text-3xl md:text-4xl font-extrabold text-blue-900 mb-3">
-      Les moments forts
-    </h2>
-    <p className="text-gray-600 max-w-2xl mx-auto">
-      De l’intensité du jeu à la joie de la victoire, chaque image raconte une histoire.
-    </p>
-  </div>
-
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-    {momentsForts.length === 0 ? (
-      <p className="col-span-full rounded-xl border border-gray-200 bg-white py-12 text-center text-gray-500">
-        Aucun moment fort publié pour le moment.
-      </p>
-    ) : (
-      momentsForts.map((photo) => (
-        <div
-          key={photo.id || photo.image}
-          className="relative h-72 overflow-hidden rounded-2xl shadow-lg group"
-        >
-          <Image
-            src={photo.image}
-            alt={photo.alt || photo.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-950/60 via-transparent to-transparent" />
-          {photo.title || photo.legend ? (
-            <p className="absolute bottom-4 left-4 right-4 break-words text-sm font-bold text-white">
-              {photo.title || photo.legend}
-            </p>
-          ) : null}
-        </div>
-      ))
-    )}
-  </div>
-</section>
+        <MomentFortSection items={momentsForts} />
 
         <ImagesSportSection sports={imagesSport} />
 
