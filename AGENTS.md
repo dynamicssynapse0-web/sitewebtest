@@ -56,7 +56,7 @@
 - `/competitions-internationales/[slug]` displays the competition title, the event title, the cover banner and the shared `Gallery` in `grid` variant (each thumbnail has `aspect-[4/3]`). The global `ImageProtection` modal and a WhatsApp `676 97 88 78` order CTA are available on the detail page.
 
 ## SEO
-- Site URL/canonical defaults and `pageMetadata()` live in `src/lib/seo.js`; per-route metadata inherits the `%s | Bilderfassung` template from `src/app/layout.js`.
+- Site URL/canonical defaults and `pageMetadata()` live in `src/lib/seo.js`; per-route metadata inherits the `%s | Bilderfassung` template from `src/app/layout.js`. The browser favicon, shortcut icon and Apple touch icon all use the Navbar logo `/images/mon-logo.png`; the default `src/app/favicon.ico` was removed.
 - `src/app/sitemap.ts` and `src/app/robots.ts` are the only TypeScript files, hence `tsconfig.json` and the `@types/*` devDependencies. Sitemap URLs for sports come from async `getAllSports()` in `src/lib/sports.js` (`listeSports` merged with `images_sport`), shared with `/sports`, plus every `categories_sport` detail URL from `getAllCategoriesSport()`.
 
 ## Operational

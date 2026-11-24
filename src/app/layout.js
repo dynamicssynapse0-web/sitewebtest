@@ -22,6 +22,11 @@ export const metadata = {
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   alternates: { canonical: '/' },
+  icons: {
+    icon: { url: '/images/mon-logo.png', type: 'image/png' },
+    shortcut: { url: '/images/mon-logo.png', type: 'image/png' },
+    apple: { url: '/images/mon-logo.png', type: 'image/png' },
+  },
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
