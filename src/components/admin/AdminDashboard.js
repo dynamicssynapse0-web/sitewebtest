@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -157,7 +157,13 @@ const SECTIONS = [
 ];
 
 function emptyForm(section) {
-  const form = { id: null, _images: [], _cover: null, _alt: '' };
+  const form = {
+    id: null,
+    _images: [],
+    _cover: null,
+    _alt: '',
+    cover_image: '',
+  };
   section.fields.forEach((field) => {
     form[field.name] = field.type === 'checkbox' ? false : '';
   });
@@ -209,6 +215,7 @@ function rowToForm(section, row) {
     id: safeRow.id ?? null,
     _images: images,
     _cover: cover,
+    cover_image: cover?.src || '',
     _alt: (cover || images[0])?.alt || '',
   };
 }
@@ -365,9 +372,18 @@ export default function AdminDashboard({ email, initial }) {
   const [form, setForm] = useState({});
   const [newFiles, setNewFiles] = useState([]);
   const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+
+  // Libère l'URL temporaire de l'aperçu quand on change ou retire la couverture.
+  useEffect(
+    () => () => {
+      if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+    },
+    [coverPreview]
+  );
 
   const activeSection = SECTIONS.find((section) => section.key === activeKey) || null;
 
@@ -378,6 +394,7 @@ export default function AdminDashboard({ email, initial }) {
     setForm(emptyForm(section));
     setNewFiles([]);
     setCoverFile(null);
+    setCoverPreview('');
     setNotice('');
     setError('');
   }
@@ -389,6 +406,7 @@ export default function AdminDashboard({ email, initial }) {
     setForm({});
     setNewFiles([]);
     setCoverFile(null);
+    setCoverPreview('');
   }
 
   function editItem(section, row) {
@@ -401,6 +419,7 @@ export default function AdminDashboard({ email, initial }) {
     setForm(nextForm);
     setNewFiles([]);
     setCoverFile(null);
+    setCoverPreview('');
     setNotice('Élément Supabase repris avec ses photos. Vous pouvez en ajouter.');
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -411,6 +430,7 @@ export default function AdminDashboard({ email, initial }) {
     setSelectedExisting(key);
     setError('');
     setCoverFile(null);
+    setCoverPreview('');
     setNewFiles([]);
 
     if (!activeSection || !key) {
@@ -502,6 +522,11 @@ export default function AdminDashboard({ email, initial }) {
     const file = Array.from(event.target.files || [])[0] || null;
     if (!file) {
       setCoverFile(null);
+      setCoverPreview('');
+      setForm((previous) => ({
+        ...previous,
+        cover_image: previous._cover?.src || '',
+      }));
       event.target.value = '';
       return;
     }
@@ -510,16 +535,29 @@ export default function AdminDashboard({ email, initial }) {
     if (validationError) {
       setError(validationError);
       setCoverFile(null);
+      setCoverPreview('');
+      setForm((previous) => ({
+        ...previous,
+        cover_image: previous._cover?.src || '',
+      }));
     } else {
       setError('');
       setCoverFile(file);
+      // Aperçu immédiat : l'image est sélectionnée mais pas encore uploadée.
+      const previewUrl = URL.createObjectURL(file);
+      setCoverPreview(previewUrl);
+      setForm((previous) => ({
+        ...previous,
+        cover_image: previous._cover?.src || previewUrl,
+      }));
     }
     event.target.value = '';
   }
 
   function removeCover() {
-    setForm((previous) => ({ ...previous, _cover: null }));
+    setForm((previous) => ({ ...previous, _cover: null, cover_image: '' }));
     setCoverFile(null);
+    setCoverPreview('');
   }
 
   function removeExisting(index) {
@@ -747,6 +785,7 @@ export default function AdminDashboard({ email, initial }) {
       setForm(emptyForm(activeSection));
       setNewFiles([]);
       setCoverFile(null);
+      setCoverPreview('');
       router.refresh();
     } catch (submitError) {
       setError(submitError.message || 'Une erreur est survenue.');
@@ -1023,24 +1062,34 @@ export default function AdminDashboard({ email, initial }) {
                       type="file"
                       accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                       required={
-                        activeSection.key === 'categories_sport' && !form._cover?.src
+                        activeSection.key === 'categories_sport' &&
+                        !form.cover_image &&
+                        !coverFile
                       }
                       onChange={handleCoverFile}
                       className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
                     />
-                    {form._cover?.src ? (
+                    {coverPreview || form._cover?.src ? (
                       <div className="mt-3 flex items-center gap-3">
                         <Image
-                          src={form._cover.src}
-                          alt={form._cover.alt || 'Couverture actuelle'}
+                          src={coverPreview || form._cover.src}
+                          alt={form._cover?.alt || 'Couverture sélectionnée'}
                           width={80}
                           height={80}
+                          unoptimized={Boolean(coverPreview)}
                           className="h-20 w-20 rounded-lg object-cover"
                         />
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-blue-950">
-                            Couverture actuelle
+                            {coverPreview
+                              ? 'Image sélectionnée'
+                              : 'Couverture actuelle'}
                           </p>
+                          {coverFile ? (
+                            <p className="mt-1 break-words text-xs text-gray-600">
+                              {coverFile.name} — sera uploadée à l’enregistrement.
+                            </p>
+                          ) : null}
                           <button
                             type="button"
                             onClick={removeCover}
@@ -1050,11 +1099,6 @@ export default function AdminDashboard({ email, initial }) {
                           </button>
                         </div>
                       </div>
-                    ) : null}
-                    {coverFile ? (
-                      <p className="mt-2 break-words text-xs text-gray-600">
-                        · {coverFile.name} (à uploader comme couverture)
-                      </p>
                     ) : null}
 
                     <label
