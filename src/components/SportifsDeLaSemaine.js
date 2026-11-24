@@ -156,52 +156,60 @@ export default function SportifsDeLaSemaine({ sportifs = [] }) {
           </p>
         </div>
 
-        <div
-          ref={carouselRef}
-          onScroll={handleScroll}
-          className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:snap-none md:overflow-visible md:pb-0 lg:grid-cols-12"
-          aria-label="Carrousel des sportifs de la semaine"
-        >
-          {featured ? <PortraitCard key={featured.id} portrait={featured} /> : null}
-          <div className="contents lg:col-span-5 lg:grid lg:grid-cols-1 lg:gap-5">
-            {secondary.map((portrait) => (
-              <PortraitCard key={portrait.id} portrait={portrait} />
-            ))}
+        {orderedPortraits.length === 0 ? (
+          <div className="rounded-2xl border border-white/15 bg-white/5 p-8 text-center text-sm text-blue-100/75">
+            Aucun sportif de la semaine publié pour le moment.
           </div>
-        </div>
-
-        <p className="mt-3 text-center text-xs font-medium text-blue-100/70 md:hidden">
-          ← Fais glisser pour découvrir les suivants
-        </p>
-
-        <div
-          className="mt-4 flex justify-center gap-3 md:hidden"
-          role="group"
-          aria-label="Pagination des sportifs de la semaine"
-        >
-          {orderedPortraits.map((portrait, index) => (
-            <button
-              key={portrait.id}
-              type="button"
-              onClick={() => goToPortrait(index)}
-              aria-label={`Voir le portrait ${index + 1} sur ${orderedPortraits.length}`}
-              aria-current={index === activeIndex ? 'true' : undefined}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-white transition hover:text-red-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+        ) : (
+          <>
+            <div
+              ref={carouselRef}
+              onScroll={handleScroll}
+              className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:snap-none md:overflow-visible md:pb-0 lg:grid-cols-12"
+              aria-label="Carrousel des sportifs de la semaine"
             >
-              <span aria-hidden="true">{index === activeIndex ? '●' : '○'}</span>
-            </button>
-          ))}
-        </div>
+              {featured ? <PortraitCard key={featured.id} portrait={featured} /> : null}
+              <div className="contents lg:col-span-5 lg:grid lg:grid-cols-1 lg:gap-5">
+                {secondary.map((portrait) => (
+                  <PortraitCard key={portrait.id} portrait={portrait} />
+                ))}
+              </div>
+            </div>
 
-        <div className="mt-8 text-center">
-          <Link
-            href="/galerie"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:border-red-400 hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
-          >
-            Voir tous les portraits
-            <span aria-hidden="true">→</span>
-          </Link>
-        </div>
+            <p className="mt-3 text-center text-xs font-medium text-blue-100/70 md:hidden">
+              ← Fais glisser pour découvrir les suivants
+            </p>
+
+            <div
+              className="mt-4 flex justify-center gap-3 md:hidden"
+              role="group"
+              aria-label="Pagination des sportifs de la semaine"
+            >
+              {orderedPortraits.map((portrait, index) => (
+                <button
+                  key={portrait.id}
+                  type="button"
+                  onClick={() => goToPortrait(index)}
+                  aria-label={`Voir le portrait ${index + 1} sur ${orderedPortraits.length}`}
+                  aria-current={index === activeIndex ? 'true' : undefined}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-lg leading-none text-white transition hover:text-red-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+                >
+                  <span aria-hidden="true">{index === activeIndex ? '●' : '○'}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link
+                href="/galerie"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:border-red-400 hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+              >
+                Voir tous les portraits
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

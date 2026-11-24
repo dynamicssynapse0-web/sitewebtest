@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
-import { buildUniqueUploadName } from '@/lib/upload';
+import { buildUniqueUploadName, validateUploadFile } from '@/lib/upload';
 import { compressImageForUpload } from '@/lib/imageCompression';
 import {
   decodeMaybeJson,
@@ -141,6 +141,10 @@ function rowToForm(section, row) {
   };
 }
 
+function existingKey(row) {
+  return String(row?.id || row?.slug || row?.title || '');
+}
+
 function actionsFor(key) {
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
@@ -221,6 +225,7 @@ export default function AdminDashboard({ email, initial }) {
   const [items, setItems] = useState(initial);
   const [activeKey, setActiveKey] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [selectedExisting, setSelectedExisting] = useState('');
   const [form, setForm] = useState({});
   const [newFiles, setNewFiles] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -232,6 +237,7 @@ export default function AdminDashboard({ email, initial }) {
   function openSection(section) {
     setActiveKey(section.key);
     setEditingId(null);
+    setSelectedExisting('');
     setForm(emptyForm(section));
     setNewFiles([]);
     setNotice('');
@@ -241,18 +247,45 @@ export default function AdminDashboard({ email, initial }) {
   function closeSection() {
     setActiveKey(null);
     setEditingId(null);
+    setSelectedExisting('');
     setForm({});
     setNewFiles([]);
   }
 
   function editItem(section, row) {
+    const nextForm = rowToForm(section, row);
     setActiveKey(section.key);
     setEditingId(row.id ?? null);
-    setForm(rowToForm(section, row));
+    setSelectedExisting(existingKey(row));
+    setForm(nextForm);
     setNewFiles([]);
-    setNotice('');
+    setNotice('Élément Supabase repris avec ses photos. Vous pouvez en ajouter.');
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function applyExisting(event) {
+    const key = event.target.value;
+    setSelectedExisting(key);
+    setError('');
+
+    if (!activeSection || !key) {
+      setEditingId(null);
+      setForm(emptyForm(activeSection || SECTIONS[0]));
+      setNewFiles([]);
+      setNotice('');
+      return;
+    }
+
+    const row = (items[activeSection.key] || []).find(
+      (item) => existingKey(item) === key
+    );
+    if (!row) return;
+
+    setForm(rowToForm(activeSection, row));
+    setEditingId(row.id ?? null);
+    setNewFiles([]);
+    setNotice('Élément Supabase repris avec ses photos. Vous pouvez en ajouter.');
   }
 
   function setField(name, value) {
@@ -260,8 +293,20 @@ export default function AdminDashboard({ email, initial }) {
   }
 
   function handleFiles(event) {
-    const files = Array.from(event.target.files || []);
-    setNewFiles((previous) => [...previous, ...files]);
+    const accepted = [];
+    const rejected = [];
+
+    Array.from(event.target.files || []).forEach((file) => {
+      const error = validateUploadFile(file, { stage: 'original' });
+      if (error) rejected.push(`${file.name} : ${error}`);
+      else accepted.push(file);
+    });
+
+    if (rejected.length > 0) setError(rejected.join(' '));
+    else setError('');
+    if (accepted.length > 0) {
+      setNewFiles((previous) => [...previous, ...accepted]);
+    }
     event.target.value = '';
   }
 
@@ -290,6 +335,7 @@ export default function AdminDashboard({ email, initial }) {
         title: form.title || section.key,
         index: position,
         extension: optimized.extension,
+        mimeType: optimized.blob.type,
       });
       const path = `${section.key}/${fileName}`;
 
@@ -407,6 +453,7 @@ export default function AdminDashboard({ email, initial }) {
 
       setNotice('Enregistrement effectué.');
       setEditingId(null);
+      setSelectedExisting('');
       setForm(emptyForm(activeSection));
       setNewFiles([]);
       router.refresh();
@@ -440,6 +487,8 @@ export default function AdminDashboard({ email, initial }) {
         ),
       }));
       setNotice('Élément supprimé.');
+      setSelectedExisting('');
+      router.refresh();
     } catch (deleteError) {
       setError(deleteError.message || 'Suppression impossible.');
     } finally {
@@ -570,7 +619,7 @@ export default function AdminDashboard({ email, initial }) {
                           {itemSubtitle(activeSection, row)}
                         </p>
                       </div>
-                      <div className="flex shrink-0 gap-2">
+                      <div className="flex shrink-0 flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => editItem(activeSection, row)}
@@ -602,6 +651,34 @@ export default function AdminDashboard({ email, initial }) {
               </h3>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label
+                    htmlFor="admin-existing-item"
+                    className="mb-2 block text-sm font-bold text-blue-950"
+                  >
+                    {['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
+                      ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
+                      : 'Choisir un élément existant pour lui ajouter des photos…'}
+                  </label>
+                  <select
+                    id="admin-existing-item"
+                    value={selectedExisting}
+                    onChange={applyExisting}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                  >
+                    <option value="">+ Créer un nouveau titre</option>
+                    {(items[activeSection.key] || []).map((row) => (
+                      <option key={existingKey(row)} value={existingKey(row)}>
+                        {safeText(row.title) || 'Sans titre'}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Tous les titres et leurs photos proviennent de Supabase. La
+                    sélection pré-remplit le formulaire pour ajouter des photos
+                    ou modifier l’élément.
+                  </p>
+                </div>
                 {activeSection.fields.map((field) => (
                   <div
                     key={field.name}
@@ -640,7 +717,7 @@ export default function AdminDashboard({ email, initial }) {
                 <input
                   id="admin-images"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                   multiple={activeSection.multiple}
                   onChange={handleFiles}
                   className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
@@ -667,9 +744,11 @@ export default function AdminDashboard({ email, initial }) {
                 </div>
 
                 <p className="mt-2 text-xs text-gray-500">
-                  Upload direct dans le bucket Supabase « {SUPABASE_MEDIA_BUCKET} ». Fichiers
-                  renommés en « aubin-simo-bilderfassung-… », redimensionnés à 1600 px max et
-                  compressés en WebP/JPEG (qualité 0,82). Crédit : Aubin Simo.
+                  Formats acceptés : JPG, PNG et WebP (15 Mo maximum avant compression,
+                  3 Mo après). Upload direct dans le bucket Supabase «{' '}
+                  {SUPABASE_MEDIA_BUCKET} ». Fichiers renommés en « aubin-simo-bilderfassung-… »,
+                  redimensionnés à 1600 px max et compressés en WebP/JPEG (qualité 0,82).
+                  Crédit : Aubin Simo.
                 </p>
 
                 {form._images?.length > 0 ? (

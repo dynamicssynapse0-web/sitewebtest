@@ -139,12 +139,13 @@ export default async function AdminPage() {
     );
   }
 
-  const initial = await fetchAllItems();
+  // Les rubriques de /admin affichent exactement ce qui est publié dans Supabase.
+  const initial = toPlainJson(await fetchAllItems());
 
   return (
     <AdminDashboard
       email={safeText(context.user?.email)}
-      initial={toPlainJson(initial)}
+      initial={initial}
     />
   );
 }

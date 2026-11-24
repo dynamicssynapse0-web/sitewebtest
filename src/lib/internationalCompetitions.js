@@ -1,23 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
 import { getRemoteArticles } from './supabase/content';
-import {
-  hasValidTitle,
-  mergeCollections,
-  normalizeImages,
-  sortByDateDesc,
-} from './supabase/records';
-
-function isValidCompetition(item) {
-  if (!hasValidTitle(item)) return false;
-  return item.source !== 'supabase' || item.type === 'international';
-}
-
-const competitionsDirectory = path.join(
-  process.cwd(),
-  'content/international-competitions'
-);
+import { hasValidTitle, sortByDateDesc } from './supabase/records';
 
 export function formatCompetitionDate(date) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) {
@@ -33,41 +15,10 @@ export function formatCompetitionDate(date) {
   return date || 'Date à confirmer';
 }
 
-export function getLocalCompetitions() {
-  if (!fs.existsSync(competitionsDirectory)) return [];
-
-  return fs.readdirSync(competitionsDirectory)
-    .filter((fileName) => fileName.endsWith('.md'))
-    .map((fileName) => {
-      const slug = fileName.replace(/\.md$/, '');
-      const fileContents = fs.readFileSync(
-        path.join(competitionsDirectory, fileName),
-        'utf8'
-      );
-      const { data, content } = matter(fileContents);
-
-      return {
-        slug,
-        ...data,
-        images: normalizeImages(data.images, data.title || 'Compétition'),
-        content: content?.trim() || '',
-        source: 'markdown',
-      };
-    });
-}
-
+// Source unique : table Supabase `articles` (type = international).
 export async function getAllInternationalCompetitions() {
-  const [local, remote] = await Promise.all([
-    Promise.resolve(getLocalCompetitions()),
-    getRemoteArticles('international'),
-  ]);
-
-  return sortByDateDesc(
-    mergeCollections(
-      local.filter(isValidCompetition),
-      remote.filter(isValidCompetition)
-    )
-  );
+  const competitions = await getRemoteArticles('international');
+  return sortByDateDesc(competitions.filter(hasValidTitle));
 }
 
 export async function getInternationalCompetitionBySlug(slug) {

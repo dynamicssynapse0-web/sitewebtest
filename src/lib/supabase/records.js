@@ -71,35 +71,6 @@ export function mergeImages(...groups) {
   return Array.from(merged.values());
 }
 
-export function mergeCollections(localItems = [], remoteItems = []) {
-  const bySlug = new Map();
-
-  localItems.forEach((item) => {
-    if (item?.slug) bySlug.set(item.slug, { ...item });
-  });
-
-  remoteItems.forEach((item) => {
-    if (!item?.slug) return;
-    const existing = bySlug.get(item.slug);
-
-    if (!existing) {
-      bySlug.set(item.slug, { ...item });
-      return;
-    }
-
-    bySlug.set(item.slug, {
-      ...existing,
-      ...item,
-      images: mergeImages(existing.images, item.images),
-      coverImage: item.coverImage || existing.coverImage,
-      content: item.content || existing.content,
-      excerpt: item.excerpt || existing.excerpt,
-    });
-  });
-
-  return Array.from(bySlug.values());
-}
-
 export function getCalendarTimestamp(date) {
   if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return 0;
   const parsed = new Date(`${date}T12:00:00`);

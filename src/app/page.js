@@ -56,7 +56,7 @@ export default async function Home() {
         </div>
 
         {/* COMPÉTITIONS INTERNATIONALES */}
-        {competitionsInternationales.length > 0 && (
+        {competitionsInternationales.length > 0 ? (
           <section id="competitions-internationales" className="mb-20 overflow-hidden rounded-3xl bg-blue-950 p-6 text-white shadow-xl sm:p-8 lg:p-10">
             <div className="mb-8 flex flex-col gap-4 border-b border-white/15 pb-6 md:flex-row md:items-end md:justify-between">
               <div>
@@ -111,6 +111,10 @@ export default async function Home() {
               ))}
             </div>
           </section>
+        ) : (
+          <div className="mb-20 rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-sm text-blue-100/75">
+            Aucune compétition internationale publiée pour le moment.
+          </div>
         )}
 
         {/* 2. SECTION : DERNIERS ÉVÉNEMENTS */}
@@ -156,26 +160,32 @@ export default async function Home() {
   </div>
 
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-    {momentsForts.map((photo) => (
-      <div
-        key={photo.id || photo.image}
-        className="relative h-72 overflow-hidden rounded-2xl shadow-lg group"
-      >
-        <Image
-          src={photo.image}
-          alt={photo.alt || photo.title}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-950/60 via-transparent to-transparent" />
-        {photo.title || photo.legend ? (
-          <p className="absolute bottom-4 left-4 right-4 break-words text-sm font-bold text-white">
-            {photo.title || photo.legend}
-          </p>
-        ) : null}
-      </div>
-    ))}
+    {momentsForts.length === 0 ? (
+      <p className="col-span-full rounded-xl border border-gray-200 bg-white py-12 text-center text-gray-500">
+        Aucun moment fort publié pour le moment.
+      </p>
+    ) : (
+      momentsForts.map((photo) => (
+        <div
+          key={photo.id || photo.image}
+          className="relative h-72 overflow-hidden rounded-2xl shadow-lg group"
+        >
+          <Image
+            src={photo.image}
+            alt={photo.alt || photo.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-blue-950/60 via-transparent to-transparent" />
+          {photo.title || photo.legend ? (
+            <p className="absolute bottom-4 left-4 right-4 break-words text-sm font-bold text-white">
+              {photo.title || photo.legend}
+            </p>
+          ) : null}
+        </div>
+      ))
+    )}
   </div>
 </section>
 

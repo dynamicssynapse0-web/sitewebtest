@@ -1,20 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
 import { getRemoteArticles } from './supabase/content';
-import {
-  hasValidTitle,
-  mergeCollections,
-  normalizeImages,
-  sortByDateDesc,
-} from './supabase/records';
-
-function isValidEvent(item) {
-  if (!hasValidTitle(item)) return false;
-  return item.source !== 'supabase' || item.type === 'event';
-}
-
-const eventsDirectory = path.join(process.cwd(), 'content/events');
+import { hasValidTitle, sortByDateDesc } from './supabase/records';
 
 export function formatEventDate(date, season) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) {
@@ -33,38 +18,10 @@ export function formatEventDate(date, season) {
   return 'Date à confirmer';
 }
 
-export function getLocalEvents() {
-  if (!fs.existsSync(eventsDirectory)) return [];
-
-  return fs.readdirSync(eventsDirectory)
-    .filter((fileName) => fileName.endsWith('.md'))
-    .map((fileName) => {
-      const slug = fileName.replace(/\.md$/, '');
-      const fileContents = fs.readFileSync(
-        path.join(eventsDirectory, fileName),
-        'utf8'
-      );
-      const { data, content } = matter(fileContents);
-
-      return {
-        slug,
-        ...data,
-        images: normalizeImages(data.images, data.title || 'Événement'),
-        content: content?.trim() || '',
-        source: 'markdown',
-      };
-    });
-}
-
+// Source unique : table Supabase `articles` (type = event).
 export async function getAllEvents() {
-  const [local, remote] = await Promise.all([
-    Promise.resolve(getLocalEvents()),
-    getRemoteArticles('event'),
-  ]);
-
-  return sortByDateDesc(
-    mergeCollections(local.filter(isValidEvent), remote.filter(isValidEvent))
-  );
+  const events = await getRemoteArticles('event');
+  return sortByDateDesc(events.filter(hasValidTitle));
 }
 
 export async function getEventBySlug(slug) {
