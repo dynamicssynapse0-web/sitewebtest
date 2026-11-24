@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
+import {
+  canonicalDiscipline,
+  MAX_CATEGORY_IMAGES,
+} from '@/lib/categoriesSport';
 import { decodeMaybeJson, slugify } from '@/lib/supabase/records';
 import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
@@ -10,6 +14,7 @@ import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 const ALLOWED_TABLES = new Set([
   'articles',
   'images_sport',
+  'categories_sport',
   'sportifs_semaine',
   'vitrine_items',
 ]);
@@ -34,6 +39,7 @@ const PUBLIC_PATHS = [
   '/galerie',
   '/sports',
   '/sports/[slug]',
+  '/sports/[discipline]/[slug]',
   '/sitemap.xml',
 ];
 
@@ -60,6 +66,13 @@ function revalidatePublicContent(row, table) {
     }
     if (table === 'images_sport' && slug) {
       paths.add(`/sports/${slug}`);
+    }
+    if (table === 'categories_sport') {
+      const disciplineSlug = slugify(plainRow.discipline);
+      const sousDisciplineSlug = slugify(plainRow.sous_discipline);
+      if (disciplineSlug && sousDisciplineSlug) {
+        paths.add(`/sports/${disciplineSlug}/${sousDisciplineSlug}`);
+      }
     }
 
     paths.forEach((path) => revalidatePath(path));
@@ -264,6 +277,52 @@ export async function saveImagesSport(row) {
 
 export async function deleteImagesSport(id) {
   return deleteItem('images_sport', id);
+}
+
+export async function saveCategorySport(row) {
+  try {
+    const discipline = canonicalDiscipline(row?.discipline);
+    if (!discipline) {
+      throw new Error(`Discipline invalide : choisissez l’une des six disciplines autorisées.`);
+    }
+
+    const sousDiscipline = String(row?.sous_discipline ?? '').trim();
+    if (!sousDiscipline || sousDiscipline.toLocaleLowerCase('fr') === 'sans titre') {
+      throw new Error('La sous-discipline est requise.');
+    }
+
+    const coverImage = String(row?.cover_image ?? '').trim();
+    if (!coverImage) {
+      throw new Error('Une image de couverture est obligatoire.');
+    }
+
+    const decodedImages = decodeMaybeJson(row?.images);
+    const images = Array.isArray(decodedImages)
+      ? decodedImages
+      : decodedImages
+        ? [decodedImages]
+        : [];
+    if (images.length > MAX_CATEGORY_IMAGES) {
+      throw new Error(
+        `4 images secondaires maximum (${images.length} reçues).`
+      );
+    }
+
+    return saveItem('categories_sport', {
+      ...row,
+      discipline,
+      sous_discipline: sousDiscipline,
+      slug: slugify(`${discipline}-${sousDiscipline}`),
+      cover_image: coverImage,
+      images: JSON.stringify(images),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function deleteCategorySport(id) {
+  return deleteItem('categories_sport', id);
 }
 
 export async function saveSportif(row) {

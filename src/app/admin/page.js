@@ -6,6 +6,7 @@ import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
 import { hasValidTitle } from '@/lib/supabase/records';
+import { isCategorySportRow } from '@/lib/categoriesSport';
 
 function isArticleOfType(type) {
   return (row) =>
@@ -19,6 +20,7 @@ const EMPTY_ITEMS = {
   event: [],
   international: [],
   images_sport: [],
+  categories_sport: [],
   sportif: [],
   moment_fort: [],
   portrait_exclusif: [],
@@ -50,8 +52,15 @@ async function fetchAllItems() {
     const supabase = await getServerSupabase();
     if (!supabase) return EMPTY_ITEMS;
 
-    const [events, internationals, imagesSport, sportifs, moments, portraits] =
-      await Promise.all([
+    const [
+      events,
+      internationals,
+      imagesSport,
+      categoriesSport,
+      sportifs,
+      moments,
+      portraits,
+    ] = await Promise.all([
         fetchRows(
           supabase,
           'articles',
@@ -67,6 +76,7 @@ async function fetchAllItems() {
           isArticleOfType('international')
         ),
         fetchRows(supabase, 'images_sport', {}, 'ordre', hasValidTitle),
+        fetchRows(supabase, 'categories_sport', {}, 'ordre', isCategorySportRow),
         fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
         fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
         fetchRows(
@@ -81,6 +91,7 @@ async function fetchAllItems() {
       event: events,
       international: internationals,
       images_sport: imagesSport,
+      categories_sport: categoriesSport,
       sportif: sportifs,
       moment_fort: moments,
       portrait_exclusif: portraits,

@@ -10,7 +10,7 @@ import {
   toIsoDate,
 } from './records';
 
-async function fetchRows(table, filters = {}, order) {
+export async function fetchRows(table, filters = {}, order) {
   const supabase = getPublicSupabase();
   if (!supabase) return [];
 

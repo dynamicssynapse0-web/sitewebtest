@@ -18,17 +18,27 @@ import {
 import { safeText } from '@/lib/supabase/serialization';
 import { listeSports } from '@/lib/sports';
 import {
+  CATEGORY_DISCIPLINES,
+  MAX_CATEGORY_IMAGES,
+} from '@/lib/categoriesSport';
+import {
   deleteArticle,
+  deleteCategorySport,
   deleteImagesSport,
   deleteSportif,
   deleteVitrine,
   saveArticle,
+  saveCategorySport,
   saveImagesSport,
   saveSportif,
   saveVitrine,
 } from '@/app/admin/actions';
 
 const sportOptions = listeSports.map(({ nom }) => ({ value: nom, label: nom }));
+const categoryDisciplineOptions = CATEGORY_DISCIPLINES.map((discipline) => ({
+  value: discipline,
+  label: discipline,
+}));
 
 const SECTIONS = [
   {
@@ -76,6 +86,29 @@ const SECTIONS = [
         label: 'Description courte',
         type: 'textarea',
         placeholder: 'Ambiance des salles, dunks et tirs à 3 points.',
+      },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
+    ],
+  },
+  {
+    key: 'categories_sport',
+    label: 'Catégories de sport',
+    hint: 'categories_sport · menu Sport à 2 niveaux',
+    icon: '🏅',
+    multiple: true,
+    fields: [
+      {
+        name: 'discipline',
+        label: 'Discipline',
+        type: 'select',
+        options: categoryDisciplineOptions,
+        required: true,
+      },
+      {
+        name: 'sous_discipline',
+        label: 'Sous-discipline',
+        placeholder: 'MTN Elite One',
+        required: true,
       },
       { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
     ],
@@ -135,23 +168,27 @@ function rowToForm(section, row) {
   const safeRow =
     row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
-  const isImagesSport = section.key === 'images_sport';
-  const cover = isImagesSport
+  const hasCover = ['images_sport', 'categories_sport'].includes(section.key);
+  const fallbackTitle =
+    safeText(safeRow.title) ||
+    safeText(safeRow.sous_discipline) ||
+    'Photo';
+  const cover = hasCover
     ? normalizeImages(
         decodeMaybeJson(
           safeRow.cover_image ?? safeRow.image ?? safeRow.image_url
         ),
-        safeText(safeRow.title) || 'Photo'
+        fallbackTitle
       )[0] || null
     : null;
-  const images = isImagesSport
+  const images = hasCover
     ? normalizeImages(
         decodeMaybeJson(safeRow.images ?? safeRow.photos),
-        safeText(safeRow.title) || 'Photo'
+        fallbackTitle
       )
     : normalizeImages(
         decodeMaybeJson(safeRow.images ?? safeRow.image ?? safeRow.image_url),
-        safeText(safeRow.title) || 'Photo'
+        fallbackTitle
       );
 
   section.fields.forEach((field) => {
@@ -189,6 +226,14 @@ function baseOptionKey(sport) {
 }
 
 function existingOptions(section, items) {
+  if (section.key === 'categories_sport') {
+    return (items.categories_sport || []).map((row) => ({
+      value: existingKey(row),
+      label: `${safeText(row.discipline) || 'Sport'} — ${
+        safeText(row.sous_discipline) || 'Sans titre'
+      }`,
+    }));
+  }
   if (section.key !== 'images_sport') {
     return (items[section.key] || []).map((row) => ({
       value: existingKey(row),
@@ -215,6 +260,9 @@ function actionsFor(key) {
   if (key === 'images_sport') {
     return { save: saveImagesSport, remove: deleteImagesSport };
   }
+  if (key === 'categories_sport') {
+    return { save: saveCategorySport, remove: deleteCategorySport };
+  }
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
@@ -226,6 +274,12 @@ function itemSubtitle(section, row) {
   if (section.key === 'images_sport') {
     const count = normalizeImages(decodeMaybeJson(row.images ?? row.photos)).length;
     return [safeText(row.description), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
+      .filter(Boolean)
+      .join(' — ');
+  }
+  if (section.key === 'categories_sport') {
+    const count = normalizeImages(decodeMaybeJson(row.images)).length;
+    return [safeText(row.slug), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
       .filter(Boolean)
       .join(' — ');
   }
@@ -424,6 +478,20 @@ export default function AdminDashboard({ email, initial }) {
 
     if (rejected.length > 0) setError(rejected.join(' '));
     else setError('');
+
+    if (activeSection?.key === 'categories_sport') {
+      const already = (form._images || []).length + newFiles.length;
+      if (already + accepted.length > MAX_CATEGORY_IMAGES) {
+        setError(
+          `4 images secondaires maximum par catégorie (${already} déjà sélectionnée${
+            already > 1 ? 's' : ''
+          }). Retirez-en avant d’en ajouter.`
+        );
+        event.target.value = '';
+        return;
+      }
+    }
+
     if (accepted.length > 0) {
       setNewFiles((previous) => [...previous, ...accepted]);
     }
@@ -461,7 +529,7 @@ export default function AdminDashboard({ email, initial }) {
     }));
   }
 
-  async function uploadFiles(section) {
+  async function uploadFiles(section, title = form.title) {
     if (newFiles.length === 0) return [];
 
     const supabase = getBrowserSupabase();
@@ -469,14 +537,14 @@ export default function AdminDashboard({ email, initial }) {
 
     const uploaded = [];
     let position = 0;
-    const defaultAlt = `Aubin Simo - Bilderfassung ${form.title || ''}`.trim();
+    const defaultAlt = `Aubin Simo - Bilderfassung ${title || ''}`.trim();
     const altText = String(form._alt || '').trim() || defaultAlt;
 
     for (const source of newFiles) {
       position += 1;
       const optimized = await compressImageForUpload(source);
       const fileName = buildUniqueUploadName({
-        title: form.title || section.key,
+        title: title || section.key,
         index: position,
         extension: optimized.extension,
         mimeType: optimized.blob.type,
@@ -506,7 +574,7 @@ export default function AdminDashboard({ email, initial }) {
       uploaded.push({
         src: data.publicUrl,
         alt: altText,
-        legend: form.title || source.name,
+        legend: title || source.name,
         credit: 'Aubin Simo',
       });
     }
@@ -514,7 +582,7 @@ export default function AdminDashboard({ email, initial }) {
     return uploaded;
   }
 
-  async function uploadCover(title) {
+  async function uploadCover(title, sectionKey) {
     if (!coverFile) return form._cover?.src || '';
 
     const supabase = getBrowserSupabase();
@@ -528,7 +596,7 @@ export default function AdminDashboard({ email, initial }) {
       mimeType: optimized.blob.type,
       tag: 'cover',
     });
-    const path = `images_sport/${fileName}`;
+    const path = `${sectionKey}/${fileName}`;
     const file = new File([optimized.blob], fileName, {
       type: optimized.blob.type || coverFile.type || 'image/jpeg',
     });
@@ -560,12 +628,32 @@ export default function AdminDashboard({ email, initial }) {
 
     try {
       const isImagesSport = activeSection.key === 'images_sport';
-      const uploaded = await uploadFiles(activeSection);
+      const isCategorySport = activeSection.key === 'categories_sport';
+      const hasCover = isImagesSport || isCategorySport;
+      const uploadTitle = isCategorySport
+        ? String(form.sous_discipline || '').trim()
+        : form.title;
+
+      if (isCategorySport) {
+        if (!form.discipline) {
+          throw new Error('Choisissez une discipline dans la liste.');
+        }
+        if (!uploadTitle) {
+          throw new Error('La sous-discipline est obligatoire.');
+        }
+      }
+
+      const uploaded = await uploadFiles(activeSection, uploadTitle);
       const allImages = [...(form._images || []), ...uploaded].slice(
         0,
-        activeSection.multiple ? 30 : 1
+        isCategorySport ? MAX_CATEGORY_IMAGES : activeSection.multiple ? 30 : 1
       );
-      const coverImage = isImagesSport ? await uploadCover(form.title) : '';
+      const coverImage = hasCover
+        ? await uploadCover(uploadTitle, activeSection.key)
+        : '';
+      if (isCategorySport && !coverImage) {
+        throw new Error('Une image de couverture est obligatoire.');
+      }
       const { save } = actionsFor(activeSection.key);
 
       let payload;
@@ -575,6 +663,16 @@ export default function AdminDashboard({ email, initial }) {
           title: form.title,
           slug: slugify(form.title),
           description: form.description || '',
+          cover_image: coverImage,
+          images: JSON.stringify(allImages),
+          ordre: Number(form.ordre) || 0,
+        };
+      } else if (isCategorySport) {
+        payload = {
+          id: editingId,
+          discipline: form.discipline,
+          sous_discipline: uploadTitle,
+          slug: slugify(`${form.discipline}-${uploadTitle}`),
           cover_image: coverImage,
           images: JSON.stringify(allImages),
           ordre: Number(form.ordre) || 0,
@@ -658,7 +756,8 @@ export default function AdminDashboard({ email, initial }) {
   }
 
   async function handleDelete(section, row) {
-    if (!window.confirm(`Supprimer « ${row.title || 'cet élément'} » ?`)) return;
+    const label = row.title || row.sous_discipline || 'cet élément';
+    if (!window.confirm(`Supprimer « ${label} » ?`)) return;
 
     setBusy(true);
     setNotice('');
@@ -806,7 +905,11 @@ export default function AdminDashboard({ email, initial }) {
                     >
                       <div className="min-w-0">
                         <p className="break-words font-bold text-blue-950">
-                          {safeText(row.title) || 'Sans titre'}
+                          {activeSection.key === 'categories_sport'
+                            ? `${safeText(row.discipline) || 'Sport'} — ${
+                                safeText(row.sous_discipline) || 'Sans titre'
+                              }`
+                            : safeText(row.title) || 'Sans titre'}
                         </p>
                         <p className="mt-1 break-words text-xs text-gray-500">
                           {itemSubtitle(activeSection, row)}
@@ -851,9 +954,11 @@ export default function AdminDashboard({ email, initial }) {
                   >
                     {activeSection.key === 'images_sport'
                       ? 'Choisir une discipline existante (Supabase ou sports de base)…'
-                      : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
-                        ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
-                        : 'Choisir un élément existant pour lui ajouter des photos…'}
+                      : activeSection.key === 'categories_sport'
+                        ? 'Choisir une catégorie existante à modifier…'
+                        : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
+                          ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
+                          : 'Choisir un élément existant pour lui ajouter des photos…'}
                   </label>
                   <select
                     id="admin-existing-item"
@@ -871,7 +976,9 @@ export default function AdminDashboard({ email, initial }) {
                   <p className="mt-1 text-xs text-gray-500">
                     {activeSection.key === 'images_sport'
                       ? 'Les disciplines publiées et les sports de base sont proposés. La sélection pré-remplit le titre, la couverture, les photos et la description.'
-                      : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
+                      : activeSection.key === 'categories_sport'
+                        ? 'La sélection pré-remplit la discipline, la couverture et les 4 photos maximum.'
+                        : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
                   </p>
                 </div>
                 {activeSection.fields.map((field) => (
@@ -901,18 +1008,23 @@ export default function AdminDashboard({ email, initial }) {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                {activeSection.key === 'images_sport' ? (
+                {['images_sport', 'categories_sport'].includes(activeSection.key) ? (
                   <>
                     <label
                       htmlFor="admin-cover"
                       className="mb-2 block text-sm font-bold text-blue-950"
                     >
-                      Image principale (couverture)
+                      {activeSection.key === 'categories_sport'
+                        ? 'Image de couverture (obligatoire)'
+                        : 'Image principale (couverture)'}
                     </label>
                     <input
                       id="admin-cover"
                       type="file"
                       accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      required={
+                        activeSection.key === 'categories_sport' && !form._cover?.src
+                      }
                       onChange={handleCoverFile}
                       className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
                     />
@@ -949,7 +1061,11 @@ export default function AdminDashboard({ email, initial }) {
                       htmlFor="admin-images"
                       className="mb-2 mt-6 block text-sm font-bold text-blue-950"
                     >
-                      Images secondaires (plusieurs possibles)
+                      {activeSection.key === 'categories_sport'
+                        ? `Autres images (4 maximum — ${
+                            (form._images || []).length + newFiles.length
+                          }/4)`
+                        : 'Images secondaires (plusieurs possibles)'}
                     </label>
                     <input
                       id="admin-images"
