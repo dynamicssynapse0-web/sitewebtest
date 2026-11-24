@@ -201,7 +201,8 @@ export function mapImagesSport(row, index = 0) {
     description: firstValue(row.description, row.resume, row.excerpt),
     coverImage,
     image: coverImage,
-    alt: firstValue(row.alt, `${title} — photographie sportive`),
+    // Pas de colonne `alt` dans images_sport : texte généré côté front-end.
+    alt: `Photo ${title}`,
     images: mergeImages(coverImage, secondaryImages),
     secondaryImages,
     imageCount: secondaryImages.length,

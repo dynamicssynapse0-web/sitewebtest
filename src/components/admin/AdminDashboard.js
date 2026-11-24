@@ -379,7 +379,6 @@ export default function AdminDashboard({ email, initial }) {
             title: sport.nom,
             description: sport.description,
             cover_image: sport.image,
-            alt: sport.alt,
             images: [],
             ordre: 0,
           })
@@ -572,9 +571,6 @@ export default function AdminDashboard({ email, initial }) {
           cover_image: coverImage,
           images: JSON.stringify(allImages),
           ordre: Number(form.ordre) || 0,
-          alt:
-            String(form._alt || '').trim() ||
-            `Aubin Simo - Bilderfassung ${form.title || ''}`.trim(),
         };
       } else if (activeSection.key === 'international' || activeSection.key === 'event') {
         payload = {
