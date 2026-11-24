@@ -6,10 +6,6 @@ location: "Stades de Douala"
 sport: "Football"
 coverImage: "/images/aubin-simo-annexe.jpg"
 images:
-  - "/images/aubinsimocoton.jpg"
-  - "/images/aubinsimoimages.jpg"
-  - "/images/aubinsimokotto.jpg"
-  - "/images/AUBINSIMO-MTN.jpg"
----
+ 
 
 Un match de championnat de MTN Elite One avec une ambiance de folie dans les tribunes.
