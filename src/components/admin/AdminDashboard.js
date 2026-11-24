@@ -21,11 +21,13 @@ import {
   deleteArticle,
   deleteCategorySport,
   deleteImagesSport,
+  deleteInternationalCompetition,
   deleteSportif,
   deleteVitrine,
   saveArticle,
   saveCategorySport,
   saveImagesSport,
+  saveInternationalCompetition,
   saveSportif,
   saveVitrine,
 } from '@/app/admin/actions';
@@ -39,18 +41,22 @@ const categoryDisciplineOptions = CATEGORY_DISCIPLINES.map((discipline) => ({
 const SECTIONS = [
   {
     key: 'international',
-    label: 'Compétitions internationales',
+    label: 'Grandes compétitions',
     hint: 'articles · type international',
     icon: '🌍',
     multiple: true,
     fields: [
-      { name: 'title', label: 'Titre', placeholder: 'Cameroun vs Namibie', required: true },
-      { name: 'competition', label: 'Compétition', placeholder: 'Qualifications CAN 2027' },
-      { name: 'sport', label: 'Sport', type: 'select', options: sportOptions },
-      { name: 'date', label: 'Date exacte', type: 'date' },
-      { name: 'location', label: 'Lieu', placeholder: 'Stade de Japoma , Douala' },
-      { name: 'excerpt', label: 'Résumé', type: 'textarea' },
-      { name: 'content', label: 'Contenu détaillé', type: 'textarea' },
+      {
+        name: 'title',
+        label: 'Titre',
+        placeholder: 'Coupe du Monde, CAN 2027…',
+        required: true,
+      },
+      {
+        name: 'competition',
+        label: 'Titre de l’événement',
+        placeholder: 'Cameroun vs Brésil',
+      },
     ],
   },
   {
@@ -170,7 +176,9 @@ function rowToForm(section, row) {
   const safeRow =
     row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
-  const hasCover = ['images_sport', 'categories_sport'].includes(section.key);
+  const hasCover = ['images_sport', 'categories_sport', 'international'].includes(
+    section.key
+  );
   const fallbackTitle =
     safeText(safeRow.title) ||
     safeText(safeRow.sous_discipline) ||
@@ -266,6 +274,12 @@ function actionsFor(key) {
   if (key === 'categories_sport') {
     return { save: saveCategorySport, remove: deleteCategorySport };
   }
+  if (key === 'international') {
+    return {
+      save: saveInternationalCompetition,
+      remove: deleteInternationalCompetition,
+    };
+  }
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
@@ -283,6 +297,15 @@ function itemSubtitle(section, row) {
   if (section.key === 'categories_sport') {
     const count = normalizeImages(parseImagesField(row.images)).length;
     return [safeText(row.slug), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
+      .filter(Boolean)
+      .join(' — ');
+  }
+  if (section.key === 'international') {
+    const count = normalizeImages(parseImagesField(row.images)).length;
+    return [
+      safeText(row.competition),
+      count ? `${count} photo${count > 1 ? 's' : ''}` : '',
+    ]
       .filter(Boolean)
       .join(' — ');
   }
@@ -495,11 +518,18 @@ export default function AdminDashboard({ email, initial }) {
     if (rejected.length > 0) setError(rejected.join(' '));
     else setError('');
 
-    if (activeSection?.key === 'categories_sport') {
+    if (
+      activeSection &&
+      ['categories_sport', 'international'].includes(activeSection.key)
+    ) {
       const already = (form._images || []).length + newFiles.length;
       if (already + accepted.length > MAX_CATEGORY_IMAGES) {
+        const label =
+          activeSection.key === 'international'
+            ? 'photos de galerie'
+            : 'images secondaires';
         setError(
-          `4 images secondaires maximum par catégorie (${already} déjà sélectionnée${
+          `4 ${label} maximum (${already} déjà sélectionné${
             already > 1 ? 's' : ''
           }). Retirez-en avant d’en ajouter.`
         );
@@ -663,7 +693,8 @@ export default function AdminDashboard({ email, initial }) {
     try {
       const isImagesSport = activeSection.key === 'images_sport';
       const isCategorySport = activeSection.key === 'categories_sport';
-      const hasCover = isImagesSport || isCategorySport;
+      const isInternational = activeSection.key === 'international';
+      const hasCover = isImagesSport || isCategorySport || isInternational;
       const uploadTitle = isCategorySport
         ? String(form.sous_discipline || '').trim()
         : form.title;
@@ -678,14 +709,20 @@ export default function AdminDashboard({ email, initial }) {
       }
 
       const uploaded = await uploadFiles(activeSection, uploadTitle);
+      const galleryLimit =
+        isCategorySport || isInternational
+          ? MAX_CATEGORY_IMAGES
+          : activeSection.multiple
+            ? 30
+            : 1;
       const allImages = [...(form._images || []), ...uploaded].slice(
         0,
-        isCategorySport ? MAX_CATEGORY_IMAGES : activeSection.multiple ? 30 : 1
+        galleryLimit
       );
       const coverImage = hasCover
         ? await uploadCover(uploadTitle, activeSection.key)
         : '';
-      if (isCategorySport && !coverImage) {
+      if ((isCategorySport || isInternational) && !coverImage) {
         throw new Error('Une image de couverture est obligatoire.');
       }
       const { save } = actionsFor(activeSection.key);
@@ -712,10 +749,20 @@ export default function AdminDashboard({ email, initial }) {
           images: allImages,
           ordre: Number(form.ordre) || 0,
         };
-      } else if (activeSection.key === 'international' || activeSection.key === 'event') {
+      } else if (isInternational) {
         payload = {
           id: editingId,
-          type: activeSection.key,
+          type: 'international',
+          title: form.title,
+          competition: form.competition || '',
+          cover_image: coverImage,
+          // Tableaux envoyés tels quels : le serveur sérialise une seule fois.
+          images: allImages,
+        };
+      } else if (activeSection.key === 'event') {
+        payload = {
+          id: editingId,
+          type: 'event',
           title: form.title,
           competition: form.competition || '',
           sport: form.sport || '',
@@ -992,7 +1039,9 @@ export default function AdminDashboard({ email, initial }) {
                       ? 'Choisir une discipline existante (Supabase ou sports de base)…'
                       : activeSection.key === 'categories_sport'
                         ? 'Choisir une catégorie existante à modifier…'
-                        : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
+                        : activeSection.key === 'international'
+                          ? 'Choisir une grande compétition existante à modifier…'
+                          : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
                           ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
                           : 'Choisir un élément existant pour lui ajouter des photos…'}
                   </label>
@@ -1044,14 +1093,18 @@ export default function AdminDashboard({ email, initial }) {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                {['images_sport', 'categories_sport'].includes(activeSection.key) ? (
+                {['images_sport', 'categories_sport', 'international'].includes(
+                  activeSection.key
+                ) ? (
                   <>
                     <label
                       htmlFor="admin-cover"
                       className="mb-2 block text-sm font-bold text-blue-950"
                     >
-                      {activeSection.key === 'categories_sport'
-                        ? 'Image de couverture (obligatoire)'
+                      {['categories_sport', 'international'].includes(
+                        activeSection.key
+                      )
+                        ? 'Photo de couverture (obligatoire)'
                         : 'Image principale (couverture)'}
                     </label>
                     <input
@@ -1059,7 +1112,9 @@ export default function AdminDashboard({ email, initial }) {
                       type="file"
                       accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                       required={
-                        activeSection.key === 'categories_sport' &&
+                        ['categories_sport', 'international'].includes(
+                          activeSection.key
+                        ) &&
                         !form.cover_image &&
                         !coverFile
                       }
@@ -1102,8 +1157,10 @@ export default function AdminDashboard({ email, initial }) {
                       htmlFor="admin-images"
                       className="mb-2 mt-6 block text-sm font-bold text-blue-950"
                     >
-                      {activeSection.key === 'categories_sport'
-                        ? `Autres images (4 maximum — ${
+                      {['categories_sport', 'international'].includes(
+                        activeSection.key
+                      )
+                        ? `Galerie photos (4 maximum — ${
                             (form._images || []).length + newFiles.length
                           }/4)`
                         : 'Images secondaires (plusieurs possibles)'}

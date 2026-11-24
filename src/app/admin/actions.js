@@ -269,6 +269,44 @@ export async function deleteArticle(id) {
   return deleteItem('articles', id);
 }
 
+// Grandes compétitions : même table `articles` (type international) que
+// getAllInternationalCompetitions(), avec les contraintes du nouveau formulaire.
+export async function saveInternationalCompetition(row) {
+  try {
+    const title = String(row?.title ?? '').trim();
+    if (!title) throw new Error('Le titre de la compétition est requis.');
+
+    const coverImage = String(row?.cover_image ?? '').trim();
+    if (!coverImage) {
+      throw new Error('Une photo de couverture est obligatoire.');
+    }
+
+    const decodedImages = parseImagesField(row?.images);
+    const images = Array.isArray(decodedImages)
+      ? decodedImages
+      : decodedImages
+        ? [decodedImages]
+        : [];
+    if (images.length > 4) {
+      throw new Error(`4 photos maximum pour la galerie (${images.length} reçues).`);
+    }
+
+    return saveItem('articles', {
+      ...row,
+      type: 'international',
+      title,
+      cover_image: coverImage,
+      images,
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function deleteInternationalCompetition(id) {
+  return deleteItem('articles', id);
+}
+
 export async function saveImagesSport(row) {
   if (!String(row?.title ?? '').trim()) {
     return failure(new Error('Le titre de la discipline est requis.'));

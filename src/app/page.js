@@ -76,7 +76,17 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {competitionsInternationales.map((competition) => (
+              {competitionsInternationales.map((competition) => {
+                const CompetitionMeta = [
+                  competition.location,
+                  competition.date
+                    ? formatCompetitionDate(competition.date)
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+
+                return (
                 <article
                   key={competition.slug}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-white text-gray-900"
@@ -94,15 +104,24 @@ export default async function Home() {
                     </span>
                   </div>
                   <div className="p-5 sm:p-6">
-                    <h3 className="mb-2 text-xl font-bold text-blue-950">
+                    <h3 className="mb-1 text-xl font-bold text-blue-950">
                       {competition.title}
                     </h3>
-                    <p className="mb-4 text-sm text-gray-500">
-                      {competition.location} · {formatCompetitionDate(competition.date)}
-                    </p>
-                    <p className="mb-6 text-sm leading-6 text-gray-600">
-                      {competition.content}
-                    </p>
+                    {competition.eventTitle ? (
+                      <p className="mb-3 text-sm font-semibold text-red-600">
+                        {competition.eventTitle}
+                      </p>
+                    ) : null}
+                    {CompetitionMeta ? (
+                      <p className="mb-4 text-sm text-gray-500">
+                        {CompetitionMeta}
+                      </p>
+                    ) : null}
+                    {competition.content ? (
+                      <p className="mb-6 text-sm leading-6 text-gray-600">
+                        {competition.content}
+                      </p>
+                    ) : null}
                     <Link
                       href={`/competitions-internationales/${competition.slug}`}
                       className="inline-flex items-center gap-2 font-bold text-blue-900 transition hover:text-red-600"
@@ -111,7 +130,8 @@ export default async function Home() {
                     </Link>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           </section>
         ) : (

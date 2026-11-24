@@ -123,6 +123,14 @@ export function mapArticle(row, type) {
     title,
     type,
     competition: firstValue(row.competition),
+    // « Titre de l'événement » : nouvelles colonnes aliasées, compatibilité avec
+    // les lignes historiques qui utilisaient déjà `competition`.
+    eventTitle: firstValue(
+      row.event_title,
+      row.titre_evenement,
+      row.eventTitle,
+      row.competition
+    ),
     sport: firstValue(row.sport, row.discipline),
     date: toIsoDate(row.date),
     time: firstValue(row.time, row.heure),

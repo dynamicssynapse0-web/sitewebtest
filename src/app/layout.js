@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 import ImageProtection from '@/components/ImageProtection';
 import Navbar from '@/components/Navbar';
 import { getActiveSportDisciplines } from '@/lib/categoriesSport';
+import { getAllInternationalCompetitions } from '@/lib/internationalCompetitions';
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -45,13 +46,19 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  const sportsMenu = await getActiveSportDisciplines();
+  const [sportsMenu, competitionsMenu] = await Promise.all([
+    getActiveSportDisciplines(),
+    getAllInternationalCompetitions(),
+  ]);
 
   return (
     <html lang="fr">
       <body className={inter.className}>
         <ImageProtection />
-        <Navbar sportsMenu={sportsMenu} />
+        <Navbar
+          sportsMenu={sportsMenu}
+          competitionsMenu={competitionsMenu}
+        />
         {children}
         <Footer />
       </body>

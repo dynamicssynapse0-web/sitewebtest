@@ -4,6 +4,6 @@ export const navigationLinks = [
   { href: '/sports', label: 'Sport' },
   { href: '/galerie', label: 'Galerie' },
   { href: '/a-propos', label: 'À propos' },
-  { href: '/competitions-internationales', label: 'CAN 2027' },
+  { href: '/competitions-internationales', label: 'Compétitions internationales' },
   { href: '/contact', label: 'Contact' },
 ];

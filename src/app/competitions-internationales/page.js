@@ -7,7 +7,7 @@ import {
 import { DEFAULT_OG_IMAGE, pageMetadata } from '@/lib/seo';
 
 export const metadata = pageMetadata({
-  title: 'CAN 2027',
+  title: 'Compétitions internationales',
   description:
     'Retrouvez les compétitions internationales couvertes par Aubin Simo et toutes leurs photographies.',
   path: '/competitions-internationales',
@@ -28,7 +28,9 @@ export default async function CompetitionsInternationales() {
           >
             ← Retour à l&apos;accueil
           </Link>
-          <h1 className="text-4xl sm:text-6xl font-extrabold mb-4">CAN 2027</h1>
+          <h1 className="text-4xl sm:text-6xl font-extrabold mb-4">
+            Compétitions internationales
+          </h1>
           <p className="text-xl text-white/90 max-w-3xl">
             Les grands rendez-vous internationaux racontés en images par Aubin Simo.
           </p>
@@ -64,8 +66,16 @@ export default async function CompetitionsInternationales() {
                   <h2 className="text-2xl font-bold text-blue-950 mb-3">
                     {competition.title}
                   </h2>
+                  {competition.eventTitle ? (
+                    <p className="mb-2 text-sm font-semibold text-blue-900">
+                      {competition.eventTitle}
+                    </p>
+                  ) : null}
                   <p className="text-sm text-gray-600 mb-4">
-                    {formatCompetitionDate(competition.date)} · {competition.location}
+                    {competition.date
+                      ? formatCompetitionDate(competition.date)
+                      : 'Date à confirmer'}
+                    {competition.location ? ` · ${competition.location}` : ''}
                   </p>
                   <span className="text-red-600 font-semibold text-sm">
                     Voir la galerie →
