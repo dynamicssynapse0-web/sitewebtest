@@ -1,2 +1,14 @@
 @import "tailwindcss";
 
+/* Protection des photos : pas de sélection, d'appui long ni de glisser-déposer. */
+img,
+picture,
+figure,
+[data-image-protect],
+.yarl__slide,
+.yarl__image {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}

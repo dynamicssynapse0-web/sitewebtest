@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
+import ImageProtection from '@/components/ImageProtection';
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -45,6 +46,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body className={inter.className}>
+        <ImageProtection />
         {children}
         <Footer />
       </body>
