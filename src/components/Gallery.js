@@ -2,11 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import Lightbox from 'yet-another-react-lightbox';
-import Counter from 'yet-another-react-lightbox/plugins/counter';
-import 'yet-another-react-lightbox/styles.css';
-import 'yet-another-react-lightbox/plugins/counter.css';
+import PhotoLightbox from './PhotoLightbox';
+import { toLightboxSlides } from '@/lib/lightbox';
 
 const PAGE_SIZE = 18;
 
@@ -52,14 +49,8 @@ export default function Gallery({
   const remainingPhotos = photos.length - visiblePhotos.length;
 
   const slides = useMemo(
-    () =>
-      photos.map((photo) => ({
-        src: photo.src,
-        alt: photo.alt,
-        title: photo.legend,
-        description: `${photo.credit}${sport ? ` · ${sport}` : ''}`,
-      })),
-    [photos, sport]
+    () => toLightboxSlides(photos, title, sport),
+    [photos, title, sport]
   );
 
   const isMasonry = variant === 'masonry';
@@ -144,46 +135,15 @@ export default function Gallery({
         </div>
       ) : null}
 
-      <Lightbox
+      <PhotoLightbox
         open={index >= 0}
-        index={index}
+        index={index >= 0 ? index : 0}
         close={() => setIndex(-1)}
         slides={slides}
-        plugins={[Counter]}
-        labels={{
-          Previous: 'Précédent',
-          Next: 'Suivant',
-          Close: 'Fermer',
-          Lightbox: `Galerie photo : ${title}`,
-        }}
-        counter={{
-          container: {
-            style: {
-              top: 20,
-              right: 20,
-              borderRadius: 999,
-              padding: '8px 14px',
-              background: 'rgba(4, 20, 50, 0.85)',
-              fontSize: 13,
-              fontWeight: 700,
-            },
-          },
-        }}
-        render={{
-          buttonPrev: photos.length > 1 ? undefined : () => null,
-          buttonNext: photos.length > 1 ? undefined : () => null,
-        }}
+        title={title}
+        href={href}
+        hrefLabel={hrefLabel}
       />
-
-      {href && index >= 0 && photos[index] && (
-        <Link
-          href={href}
-          onClick={() => setIndex(-1)}
-          className="fixed bottom-5 left-1/2 z-[10001] -translate-x-1/2 rounded-full border border-white/20 bg-blue-950/90 px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition hover:bg-red-600"
-        >
-          {hrefLabel} <span aria-hidden="true">→</span>
-        </Link>
-      )}
     </>
   );
 }

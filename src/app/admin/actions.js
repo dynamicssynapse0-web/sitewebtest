@@ -10,6 +10,7 @@ import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 const ALLOWED_TABLES = new Set([
   'articles',
   'images_sport',
+  'championnats',
   'sportifs_semaine',
   'vitrine_items',
 ]);
@@ -264,6 +265,20 @@ export async function saveImagesSport(row) {
 
 export async function deleteImagesSport(id) {
   return deleteItem('images_sport', id);
+}
+
+export async function saveChampionnat(row) {
+  if (!String(row?.title ?? '').trim()) {
+    return failure(new Error('Le titre du championnat est requis.'));
+  }
+  if (!String(row?.sport ?? '').trim()) {
+    return failure(new Error('Le sport est requis.'));
+  }
+  return saveItem('championnats', row);
+}
+
+export async function deleteChampionnat(id) {
+  return deleteItem('championnats', id);
 }
 
 export async function saveSportif(row) {

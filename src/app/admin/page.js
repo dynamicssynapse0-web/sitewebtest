@@ -19,6 +19,7 @@ const EMPTY_ITEMS = {
   event: [],
   international: [],
   images_sport: [],
+  championnats: [],
   sportif: [],
   moment_fort: [],
   portrait_exclusif: [],
@@ -50,8 +51,15 @@ async function fetchAllItems() {
     const supabase = await getServerSupabase();
     if (!supabase) return EMPTY_ITEMS;
 
-    const [events, internationals, imagesSport, sportifs, moments, portraits] =
-      await Promise.all([
+    const [
+      events,
+      internationals,
+      imagesSport,
+      championnats,
+      sportifs,
+      moments,
+      portraits,
+    ] = await Promise.all([
         fetchRows(
           supabase,
           'articles',
@@ -67,6 +75,7 @@ async function fetchAllItems() {
           isArticleOfType('international')
         ),
         fetchRows(supabase, 'images_sport', {}, 'ordre', hasValidTitle),
+        fetchRows(supabase, 'championnats', {}, 'ordre', hasValidTitle),
         fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
         fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
         fetchRows(
@@ -81,6 +90,7 @@ async function fetchAllItems() {
       event: events,
       international: internationals,
       images_sport: imagesSport,
+      championnats,
       sportif: sportifs,
       moment_fort: moments,
       portrait_exclusif: portraits,

@@ -223,3 +223,53 @@ export async function getRemoteImagesSport() {
     .map(mapImagesSport)
     .sort((a, b) => a.order - b.order);
 }
+
+// Championnat = sous-catégorie d'un sport. Comme pour images_sport, la
+// couverture est distincte des photos secondaires mais `images` contient la
+// galerie complète (couverture en premier) pour la lightbox et /galerie.
+export function mapChampionnat(row, index = 0) {
+  const title = String(row.title ?? row.titre ?? '').trim() || 'Sans titre';
+  const sport = String(row.sport ?? row.discipline ?? '').trim();
+  const secondaryImages = normalizeImages(
+    firstValue(row.images, row.photos, row.image_urls),
+    title
+  );
+  const coverImages = normalizeImages(
+    firstValue(row.cover_image, row.image, row.image_url),
+    title
+  );
+  const coverImage =
+    coverImages[0]?.src || secondaryImages[0]?.src || DEFAULT_OG_IMAGE;
+  const slug =
+    slugify(row.slug || `${sport}-${title}`) || `championnat-${index + 1}`;
+
+  return {
+    id: row.id ?? null,
+    sport,
+    sportSlug: slugify(sport),
+    title,
+    slug,
+    description: firstValue(row.description, row.resume, row.excerpt),
+    coverImage,
+    image: coverImage,
+    // Pas de colonne `alt` dans championnats : texte généré côté front-end.
+    alt: `Photo ${title}`,
+    images: mergeImages(coverImage, secondaryImages),
+    secondaryImages,
+    imageCount: secondaryImages.length,
+    order: Number(row.ordre ?? row.order ?? 0) || 0,
+    source: 'supabase',
+  };
+}
+
+export async function getRemoteChampionnats() {
+  const rows = await fetchRows(
+    'championnats',
+    {},
+    { column: 'ordre', ascending: true }
+  );
+  return rows
+    .filter(hasValidTitle)
+    .map(mapChampionnat)
+    .sort((a, b) => a.order - b.order);
+}

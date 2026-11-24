@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { navigationLinks } from '@/lib/navigation';
+import { DEFAULT_PHOTO_MESSAGE, whatsappUrl } from '@/lib/whatsapp';
 
 export default function Navbar() {
   const [menuOuvert, setMenuOuvert] = useState(false);
@@ -43,15 +44,25 @@ export default function Navbar() {
           ))}
         </div>
 
-        <button
-          type="button"
-          className="md:hidden p-2 text-3xl leading-none"
-          onClick={() => setMenuOuvert(!menuOuvert)}
-          aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
-          aria-expanded={menuOuvert}
-        >
-          {menuOuvert ? '×' : '☰'}
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href={whatsappUrl(DEFAULT_PHOTO_MESSAGE)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex rounded-full bg-green-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-green-700 sm:px-4 sm:text-xs md:hidden"
+          >
+            💬 Commander
+          </a>
+          <button
+            type="button"
+            className="md:hidden p-2 text-3xl leading-none"
+            onClick={() => setMenuOuvert(!menuOuvert)}
+            aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={menuOuvert}
+          >
+            {menuOuvert ? '×' : '☰'}
+          </button>
+        </div>
       </div>
 
       {menuOuvert && (
@@ -67,9 +78,28 @@ export default function Navbar() {
                 {lien.label}
               </Link>
             ))}
+            <a
+              href={whatsappUrl(DEFAULT_PHOTO_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMenuOuvert(false)}
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700"
+            >
+              💬 Commander des photos
+            </a>
           </div>
         </div>
       )}
+
+      <a
+        href={whatsappUrl(DEFAULT_PHOTO_MESSAGE)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Commander des photos sur WhatsApp"
+        className="fixed bottom-4 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-2xl text-white shadow-2xl transition hover:bg-green-700 md:hidden"
+      >
+        <span aria-hidden="true">💬</span>
+      </a>
     </nav>
   );
 }

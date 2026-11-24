@@ -3,10 +3,8 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Lightbox from 'yet-another-react-lightbox';
-import Counter from 'yet-another-react-lightbox/plugins/counter';
-import 'yet-another-react-lightbox/styles.css';
-import 'yet-another-react-lightbox/plugins/counter.css';
+import PhotoLightbox from './PhotoLightbox';
+import { toLightboxSlides } from '@/lib/lightbox';
 import { slugify } from '@/lib/supabase/records';
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 
@@ -72,15 +70,7 @@ export default function ImagesSportSection({ sports = [] }) {
   );
 
   const slides = useMemo(
-    () =>
-      active
-        ? active.gallery.map((photo) => ({
-            src: photo.src,
-            alt: photo.alt,
-            title: photo.legend,
-            description: photo.credit,
-          }))
-        : [],
+    () => (active ? toLightboxSlides(active.gallery, active.title) : []),
     [active]
   );
 
@@ -158,46 +148,15 @@ export default function ImagesSportSection({ sports = [] }) {
         </div>
       )}
 
-      <Lightbox
+      <PhotoLightbox
         open={Boolean(active)}
         index={0}
         close={() => setActive(null)}
         slides={slides}
-        plugins={[Counter]}
-        labels={{
-          Previous: 'Précédent',
-          Next: 'Suivant',
-          Close: 'Fermer',
-          Lightbox: `Galerie photo : ${active?.title || 'Images Sport'}`,
-        }}
-        counter={{
-          container: {
-            style: {
-              top: 20,
-              right: 20,
-              borderRadius: 999,
-              padding: '8px 14px',
-              background: 'rgba(4, 20, 50, 0.85)',
-              fontSize: 13,
-              fontWeight: 700,
-            },
-          },
-        }}
-        render={{
-          buttonPrev: slides.length > 1 ? undefined : () => null,
-          buttonNext: slides.length > 1 ? undefined : () => null,
-        }}
+        title={active?.title || 'Images Sport'}
+        href={active ? `/sports/${active.slug}` : undefined}
+        hrefLabel="Voir la discipline"
       />
-
-      {active ? (
-        <Link
-          href={`/sports/${active.slug}`}
-          onClick={() => setActive(null)}
-          className="fixed bottom-5 left-1/2 z-[10001] -translate-x-1/2 rounded-full border border-white/20 bg-blue-950/90 px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition hover:bg-red-600"
-        >
-          Voir la discipline <span aria-hidden="true">→</span>
-        </Link>
-      ) : null}
     </section>
   );
 }

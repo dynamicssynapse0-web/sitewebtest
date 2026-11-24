@@ -19,16 +19,19 @@ import { safeText } from '@/lib/supabase/serialization';
 import { listeSports } from '@/lib/sports';
 import {
   deleteArticle,
+  deleteChampionnat,
   deleteImagesSport,
   deleteSportif,
   deleteVitrine,
   saveArticle,
+  saveChampionnat,
   saveImagesSport,
   saveSportif,
   saveVitrine,
 } from '@/app/admin/actions';
 
 const sportOptions = listeSports.map(({ nom }) => ({ value: nom, label: nom }));
+const sportSlugOptions = listeSports.map(({ nom, slug }) => ({ value: slug, label: nom }));
 
 const SECTIONS = [
   {
@@ -76,6 +79,34 @@ const SECTIONS = [
         label: 'Description courte',
         type: 'textarea',
         placeholder: 'Ambiance des salles, dunks et tirs à 3 points.',
+      },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
+    ],
+  },
+  {
+    key: 'championnats',
+    label: 'Championnats',
+    hint: 'championnats · sous-catégories par sport',
+    icon: '🏆',
+    multiple: true,
+    fields: [
+      {
+        name: 'title',
+        label: 'Titre du championnat',
+        placeholder: 'MTN Elite One',
+        required: true,
+      },
+      {
+        name: 'sport',
+        label: 'Sport',
+        type: 'select',
+        options: sportSlugOptions,
+      },
+      {
+        name: 'description',
+        label: 'Description courte',
+        type: 'textarea',
+        placeholder: 'Le sommet du football camerounais.',
       },
       { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
     ],
@@ -135,8 +166,8 @@ function rowToForm(section, row) {
   const safeRow =
     row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
-  const isImagesSport = section.key === 'images_sport';
-  const cover = isImagesSport
+  const hasCover = ['images_sport', 'championnats'].includes(section.key);
+  const cover = hasCover
     ? normalizeImages(
         decodeMaybeJson(
           safeRow.cover_image ?? safeRow.image ?? safeRow.image_url
@@ -144,7 +175,7 @@ function rowToForm(section, row) {
         safeText(safeRow.title) || 'Photo'
       )[0] || null
     : null;
-  const images = isImagesSport
+  const images = hasCover
     ? normalizeImages(
         decodeMaybeJson(safeRow.images ?? safeRow.photos),
         safeText(safeRow.title) || 'Photo'
@@ -192,7 +223,10 @@ function existingOptions(section, items) {
   if (section.key !== 'images_sport') {
     return (items[section.key] || []).map((row) => ({
       value: existingKey(row),
-      label: safeText(row.title) || 'Sans titre',
+      label:
+        section.key === 'championnats'
+          ? `${listeSports.find((sport) => sport.slug === row.sport)?.nom || row.sport || 'Sport'} — ${safeText(row.title) || 'Sans titre'}`
+          : safeText(row.title) || 'Sans titre',
     }));
   }
 
@@ -215,6 +249,9 @@ function actionsFor(key) {
   if (key === 'images_sport') {
     return { save: saveImagesSport, remove: deleteImagesSport };
   }
+  if (key === 'championnats') {
+    return { save: saveChampionnat, remove: deleteChampionnat };
+  }
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
@@ -226,6 +263,13 @@ function itemSubtitle(section, row) {
   if (section.key === 'images_sport') {
     const count = normalizeImages(decodeMaybeJson(row.images ?? row.photos)).length;
     return [safeText(row.description), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
+      .filter(Boolean)
+      .join(' — ');
+  }
+  if (section.key === 'championnats') {
+    const sport = listeSports.find((item) => item.slug === row.sport)?.nom || row.sport;
+    const count = normalizeImages(decodeMaybeJson(row.images)).length;
+    return [sport, count ? `${count} photo${count > 1 ? 's' : ''}` : '']
       .filter(Boolean)
       .join(' — ');
   }
@@ -514,7 +558,7 @@ export default function AdminDashboard({ email, initial }) {
     return uploaded;
   }
 
-  async function uploadCover(title) {
+  async function uploadCover(title, sectionKey) {
     if (!coverFile) return form._cover?.src || '';
 
     const supabase = getBrowserSupabase();
@@ -528,7 +572,7 @@ export default function AdminDashboard({ email, initial }) {
       mimeType: optimized.blob.type,
       tag: 'cover',
     });
-    const path = `images_sport/${fileName}`;
+    const path = `${sectionKey}/${fileName}`;
     const file = new File([optimized.blob], fileName, {
       type: optimized.blob.type || coverFile.type || 'image/jpeg',
     });
@@ -559,21 +603,34 @@ export default function AdminDashboard({ email, initial }) {
     setError('');
 
     try {
-      const isImagesSport = activeSection.key === 'images_sport';
+      const hasCover = ['images_sport', 'championnats'].includes(activeSection.key);
       const uploaded = await uploadFiles(activeSection);
       const allImages = [...(form._images || []), ...uploaded].slice(
         0,
         activeSection.multiple ? 30 : 1
       );
-      const coverImage = isImagesSport ? await uploadCover(form.title) : '';
+      const coverImage = hasCover
+        ? await uploadCover(form.title, activeSection.key)
+        : '';
       const { save } = actionsFor(activeSection.key);
 
       let payload;
-      if (isImagesSport) {
+      if (activeSection.key === 'images_sport') {
         payload = {
           id: editingId,
           title: form.title,
           slug: slugify(form.title),
+          description: form.description || '',
+          cover_image: coverImage,
+          images: JSON.stringify(allImages),
+          ordre: Number(form.ordre) || 0,
+        };
+      } else if (activeSection.key === 'championnats') {
+        payload = {
+          id: editingId,
+          title: form.title,
+          sport: form.sport || '',
+          slug: slugify(`${form.sport || 'sport'}-${form.title || ''}`),
           description: form.description || '',
           cover_image: coverImage,
           images: JSON.stringify(allImages),
@@ -901,7 +958,7 @@ export default function AdminDashboard({ email, initial }) {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                {activeSection.key === 'images_sport' ? (
+                {['images_sport', 'championnats'].includes(activeSection.key) ? (
                   <>
                     <label
                       htmlFor="admin-cover"
