@@ -66,7 +66,7 @@ export default async function Sports() {
                 aria-label={`Découvrir la discipline ${sport.nom || sport.title}`}
               >
                 <article className="relative bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                  <div className="relative h-60 bg-gray-200 overflow-hidden sm:h-72">
+                  <div className="relative h-48 sm:h-52 bg-gray-200 overflow-hidden">
                     <Image
                       src={sport.coverImage || sport.image}
                       alt={sport.alt || sport.nom || sport.title}
@@ -74,13 +74,19 @@ export default async function Sports() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                    <span className="absolute left-4 top-4 rounded-full bg-blue-950/85 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white">
-                      {sport.nom || sport.title}
-                    </span>
-                    <span className="absolute bottom-3 right-3 rounded-full bg-blue-950/85 px-3 py-1 text-[11px] font-bold text-white">
-                      {sport.imageCount || 0} photo{(sport.imageCount || 0) > 1 ? 's' : ''}
-                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
+                      <span
+                        className="text-5xl sm:text-6xl drop-shadow-lg select-none"
+                        aria-hidden="true"
+                      >
+                        {sport.icone || '📸'}
+                      </span>
+                    </div>
+                    {sport.imageCount ? (
+                      <span className="absolute bottom-3 right-3 rounded-full bg-blue-950/85 px-3 py-1 text-[11px] font-bold text-white">
+                        {sport.imageCount} photo{sport.imageCount > 1 ? 's' : ''}
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="p-5 sm:p-6 flex flex-col flex-1">
@@ -91,8 +97,8 @@ export default async function Sports() {
                       {sport.description}
                     </p>
 
-                    <span className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-yellow-500 px-5 py-2.5 text-sm font-bold text-blue-950 transition group-hover:gap-3 group-hover:bg-yellow-400">
-                      Explorer les photos
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-yellow-600 group-hover:gap-3 transition-all">
+                      Voir la galerie
                       <span aria-hidden="true">→</span>
                     </span>
                   </div>

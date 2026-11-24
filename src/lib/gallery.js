@@ -3,13 +3,7 @@ import { getImagesSportDisciplines } from './imagesSport';
 import { getAllInternationalCompetitions } from './internationalCompetitions';
 import { getAllSportifs } from './sportifsSemaine';
 import { getVitrineItems } from './vitrine';
-import { getAllChampionnats } from './championnats';
-import { normalizeImages, slugify } from './supabase/records';
-
-function yearOf(item = {}) {
-  const value = String(item.date ?? '').slice(0, 4);
-  return /^\d{4}$/.test(value) ? value : '';
-}
+import { normalizeImages } from './supabase/records';
 
 function withContext(items, getContext) {
   return items.flatMap((item) => {
@@ -19,12 +13,7 @@ function withContext(items, getContext) {
     );
     const context = getContext(item);
 
-    return images.map((image) => ({
-      ...image,
-      ...context,
-      sport: context.sport || '',
-      year: context.year || '',
-    }));
+    return images.map((image) => ({ ...image, ...context }));
   });
 }
 
@@ -36,7 +25,6 @@ export async function getGalleryImages() {
     momentsForts,
     portraitsExclusifs,
     imagesSport,
-    championnats,
   ] = await Promise.all([
     getAllEvents(),
     getAllInternationalCompetitions(),
@@ -44,7 +32,6 @@ export async function getGalleryImages() {
     getVitrineItems('moment_fort'),
     getVitrineItems('portrait_exclusif'),
     getImagesSportDisciplines(),
-    getAllChampionnats(),
   ]);
 
   const allImages = [
@@ -52,50 +39,31 @@ export async function getGalleryImages() {
       title: event.title,
       category: 'Événement',
       href: `/evenements/${event.slug}`,
-      sport: slugify(event.sport),
-      year: yearOf(event),
     })),
     ...withContext(competitions, (competition) => ({
       title: competition.title,
       category: 'Compétition',
       href: `/competitions-internationales/${competition.slug}`,
-      sport: slugify(competition.sport || competition.competition),
-      year: yearOf(competition),
     })),
     ...withContext(sportifs, (portrait) => ({
       title: portrait.title,
       category: 'Sportif de la semaine',
       href: `/sportifs-semaine/${portrait.id}`,
-      sport: portrait.discipline || portrait.sport || '',
-      year: '',
     })),
     ...withContext(momentsForts, (item) => ({
       title: item.title,
       category: 'Moment fort',
-      href: '/galerie#moments-forts',
-      sport: '',
-      year: '',
+      href: '/#moments-forts',
     })),
     ...withContext(portraitsExclusifs, (item) => ({
       title: item.title,
       category: 'Portrait exclusif',
-      href: '/galerie#portraits-exclusifs',
-      sport: '',
-      year: '',
+      href: '/#portraits-exclusifs',
     })),
     ...withContext(imagesSport, (discipline) => ({
       title: discipline.title,
       category: 'Images Sport',
       href: `/sports/${discipline.slug}`,
-      sport: discipline.slug || discipline.title || '',
-      year: '',
-    })),
-    ...withContext(championnats, (championnat) => ({
-      title: championnat.title,
-      category: 'Championnat',
-      href: '/#championnats',
-      sport: championnat.sportSlug || championnat.sport || '',
-      year: '',
     })),
   ];
 

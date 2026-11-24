@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import PhotoLightbox from './PhotoLightbox';
-import { toLightboxSlides } from '@/lib/lightbox';
+import Lightbox from 'yet-another-react-lightbox';
+import Counter from 'yet-another-react-lightbox/plugins/counter';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/counter.css';
 
 function normalizeImage(image, title, index) {
   const value = typeof image === 'string' ? { src: image } : image || {};
@@ -22,7 +24,7 @@ export default function PortraitLightbox({ images = [], title }) {
   const photos = images.map((image, position) =>
     normalizeImage(image, title, position)
   );
-  const slides = toLightboxSlides(photos, title);
+  const slides = photos.map((photo) => ({ src: photo.src, alt: photo.alt }));
 
   return (
     <>
@@ -49,12 +51,31 @@ export default function PortraitLightbox({ images = [], title }) {
         ))}
       </div>
 
-      <PhotoLightbox
+      <Lightbox
         open={index >= 0}
-        index={index >= 0 ? index : 0}
+        index={index}
         close={() => setIndex(-1)}
         slides={slides}
-        title={title || 'Portrait'}
+        plugins={[Counter]}
+        labels={{
+          Previous: 'Précédent',
+          Next: 'Suivant',
+          Close: 'Fermer',
+          Lightbox: `Galerie photo : ${title}`,
+        }}
+        counter={{
+          container: {
+            style: {
+              top: 20,
+              right: 20,
+              borderRadius: 999,
+              padding: '8px 14px',
+              background: 'rgba(4, 20, 50, 0.85)',
+              fontSize: 13,
+              fontWeight: 700,
+            },
+          },
+        }}
       />
     </>
   );
