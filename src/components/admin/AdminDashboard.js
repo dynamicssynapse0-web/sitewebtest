@@ -12,15 +12,18 @@ import { compressImageForUpload } from '@/lib/imageCompression';
 import {
   decodeMaybeJson,
   normalizeImages,
+  slugify,
   toIsoDate,
 } from '@/lib/supabase/records';
 import { safeText } from '@/lib/supabase/serialization';
 import { listeSports } from '@/lib/sports';
 import {
   deleteArticle,
+  deleteImagesSport,
   deleteSportif,
   deleteVitrine,
   saveArticle,
+  saveImagesSport,
   saveSportif,
   saveVitrine,
 } from '@/app/admin/actions';
@@ -58,6 +61,23 @@ const SECTIONS = [
       { name: 'location', label: 'Lieu', placeholder: 'Stades de Douala' },
       { name: 'excerpt', label: 'Résumé', type: 'textarea' },
       { name: 'content', label: 'Contenu détaillé', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'images_sport',
+    label: 'Images Sport',
+    hint: 'images_sport · disciplines photo',
+    icon: '📸',
+    multiple: true,
+    fields: [
+      { name: 'title', label: 'Titre', placeholder: 'BASKETBALL', required: true },
+      {
+        name: 'description',
+        label: 'Description courte',
+        type: 'textarea',
+        placeholder: 'Ambiance des salles, dunks et tirs à 3 points.',
+      },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
     ],
   },
   {
@@ -104,7 +124,7 @@ const SECTIONS = [
 ];
 
 function emptyForm(section) {
-  const form = { id: null, _images: [], _alt: '' };
+  const form = { id: null, _images: [], _cover: null, _alt: '' };
   section.fields.forEach((field) => {
     form[field.name] = field.type === 'checkbox' ? false : '';
   });
@@ -115,10 +135,24 @@ function rowToForm(section, row) {
   const safeRow =
     row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
-  const images = normalizeImages(
-    decodeMaybeJson(safeRow.images ?? safeRow.image ?? safeRow.image_url),
-    safeText(safeRow.title) || 'Photo'
-  );
+  const isImagesSport = section.key === 'images_sport';
+  const cover = isImagesSport
+    ? normalizeImages(
+        decodeMaybeJson(
+          safeRow.cover_image ?? safeRow.image ?? safeRow.image_url
+        ),
+        safeText(safeRow.title) || 'Photo'
+      )[0] || null
+    : null;
+  const images = isImagesSport
+    ? normalizeImages(
+        decodeMaybeJson(safeRow.images ?? safeRow.photos),
+        safeText(safeRow.title) || 'Photo'
+      )
+    : normalizeImages(
+        decodeMaybeJson(safeRow.images ?? safeRow.image ?? safeRow.image_url),
+        safeText(safeRow.title) || 'Photo'
+      );
 
   section.fields.forEach((field) => {
     const raw = safeRow[field.name];
@@ -137,7 +171,8 @@ function rowToForm(section, row) {
     ...form,
     id: safeRow.id ?? null,
     _images: images,
-    _alt: images[0]?.alt || '',
+    _cover: cover,
+    _alt: (cover || images[0])?.alt || '',
   };
 }
 
@@ -145,7 +180,41 @@ function existingKey(row) {
   return String(row?.id || row?.slug || row?.title || '');
 }
 
+function rowOptionKey(row) {
+  return `row:${existingKey(row)}`;
+}
+
+function baseOptionKey(sport) {
+  return `base:${sport.slug}`;
+}
+
+function existingOptions(section, items) {
+  if (section.key !== 'images_sport') {
+    return (items[section.key] || []).map((row) => ({
+      value: existingKey(row),
+      label: safeText(row.title) || 'Sans titre',
+    }));
+  }
+
+  const published = items.images_sport || [];
+  const publishedSlugs = new Set(
+    published.map((row) => slugify(row.slug || row.title))
+  );
+  const publishedOptions = published.map((row) => ({
+    value: rowOptionKey(row),
+    label: `${safeText(row.title) || 'Sans titre'} · publié`,
+  }));
+  const baseOptions = listeSports
+    .filter((sport) => !publishedSlugs.has(sport.slug))
+    .map((sport) => ({ value: baseOptionKey(sport), label: sport.nom }));
+
+  return [...publishedOptions, ...baseOptions];
+}
+
 function actionsFor(key) {
+  if (key === 'images_sport') {
+    return { save: saveImagesSport, remove: deleteImagesSport };
+  }
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
@@ -154,6 +223,12 @@ function actionsFor(key) {
 }
 
 function itemSubtitle(section, row) {
+  if (section.key === 'images_sport') {
+    const count = normalizeImages(decodeMaybeJson(row.images ?? row.photos)).length;
+    return [safeText(row.description), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
+      .filter(Boolean)
+      .join(' — ');
+  }
   if (section.key === 'sportif') {
     return [row.player_name, row.position, row.competition]
       .map(safeText)
@@ -228,6 +303,7 @@ export default function AdminDashboard({ email, initial }) {
   const [selectedExisting, setSelectedExisting] = useState('');
   const [form, setForm] = useState({});
   const [newFiles, setNewFiles] = useState([]);
+  const [coverFile, setCoverFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -240,6 +316,7 @@ export default function AdminDashboard({ email, initial }) {
     setSelectedExisting('');
     setForm(emptyForm(section));
     setNewFiles([]);
+    setCoverFile(null);
     setNotice('');
     setError('');
   }
@@ -250,15 +327,19 @@ export default function AdminDashboard({ email, initial }) {
     setSelectedExisting('');
     setForm({});
     setNewFiles([]);
+    setCoverFile(null);
   }
 
   function editItem(section, row) {
     const nextForm = rowToForm(section, row);
     setActiveKey(section.key);
     setEditingId(row.id ?? null);
-    setSelectedExisting(existingKey(row));
+    setSelectedExisting(
+      section.key === 'images_sport' ? rowOptionKey(row) : existingKey(row)
+    );
     setForm(nextForm);
     setNewFiles([]);
+    setCoverFile(null);
     setNotice('Élément Supabase repris avec ses photos. Vous pouvez en ajouter.');
     setError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -268,12 +349,46 @@ export default function AdminDashboard({ email, initial }) {
     const key = event.target.value;
     setSelectedExisting(key);
     setError('');
+    setCoverFile(null);
+    setNewFiles([]);
 
     if (!activeSection || !key) {
       setEditingId(null);
       setForm(emptyForm(activeSection || SECTIONS[0]));
-      setNewFiles([]);
       setNotice('');
+      return;
+    }
+
+    if (activeSection.key === 'images_sport') {
+      if (key.startsWith('row:')) {
+        const row = (items.images_sport || []).find(
+          (item) => rowOptionKey(item) === key
+        );
+        if (!row) return;
+        setForm(rowToForm(activeSection, row));
+        setEditingId(row.id ?? null);
+        setNotice('Discipline Supabase reprise avec ses photos. Vous pouvez en ajouter.');
+        return;
+      }
+
+      if (key.startsWith('base:')) {
+        const sport = listeSports.find((item) => baseOptionKey(item) === key);
+        if (!sport) return;
+        setForm(
+          rowToForm(activeSection, {
+            title: sport.nom,
+            description: sport.description,
+            cover_image: sport.image,
+            alt: sport.alt,
+            images: [],
+            ordre: 0,
+          })
+        );
+        setEditingId(null);
+        setNotice('Discipline de base reprise. Ajoutez vos photos puis publiez.');
+        return;
+      }
+
       return;
     }
 
@@ -284,7 +399,6 @@ export default function AdminDashboard({ email, initial }) {
 
     setForm(rowToForm(activeSection, row));
     setEditingId(row.id ?? null);
-    setNewFiles([]);
     setNotice('Élément Supabase repris avec ses photos. Vous pouvez en ajouter.');
   }
 
@@ -308,6 +422,30 @@ export default function AdminDashboard({ email, initial }) {
       setNewFiles((previous) => [...previous, ...accepted]);
     }
     event.target.value = '';
+  }
+
+  function handleCoverFile(event) {
+    const file = Array.from(event.target.files || [])[0] || null;
+    if (!file) {
+      setCoverFile(null);
+      event.target.value = '';
+      return;
+    }
+
+    const validationError = validateUploadFile(file, { stage: 'original' });
+    if (validationError) {
+      setError(validationError);
+      setCoverFile(null);
+    } else {
+      setError('');
+      setCoverFile(file);
+    }
+    event.target.value = '';
+  }
+
+  function removeCover() {
+    setForm((previous) => ({ ...previous, _cover: null }));
+    setCoverFile(null);
   }
 
   function removeExisting(index) {
@@ -370,6 +508,42 @@ export default function AdminDashboard({ email, initial }) {
     return uploaded;
   }
 
+  async function uploadCover(title) {
+    if (!coverFile) return form._cover?.src || '';
+
+    const supabase = getBrowserSupabase();
+    if (!supabase) throw new Error('Supabase n’est pas configuré.');
+
+    const optimized = await compressImageForUpload(coverFile);
+    const fileName = buildUniqueUploadName({
+      title: title || 'sport',
+      index: 0,
+      extension: optimized.extension,
+      mimeType: optimized.blob.type,
+      tag: 'cover',
+    });
+    const path = `images_sport/${fileName}`;
+    const file = new File([optimized.blob], fileName, {
+      type: optimized.blob.type || coverFile.type || 'image/jpeg',
+    });
+
+    const { error: uploadError } = await supabase.storage
+      .from(SUPABASE_MEDIA_BUCKET)
+      .upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      throw new Error(`Upload de la couverture : ${uploadError.message}`);
+    }
+
+    const { data } = supabase.storage
+      .from(SUPABASE_MEDIA_BUCKET)
+      .getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!activeSection) return;
@@ -379,15 +553,30 @@ export default function AdminDashboard({ email, initial }) {
     setError('');
 
     try {
+      const isImagesSport = activeSection.key === 'images_sport';
       const uploaded = await uploadFiles(activeSection);
       const allImages = [...(form._images || []), ...uploaded].slice(
         0,
         activeSection.multiple ? 30 : 1
       );
+      const coverImage = isImagesSport ? await uploadCover(form.title) : '';
       const { save } = actionsFor(activeSection.key);
 
       let payload;
-      if (activeSection.key === 'international' || activeSection.key === 'event') {
+      if (isImagesSport) {
+        payload = {
+          id: editingId,
+          title: form.title,
+          slug: slugify(form.title),
+          description: form.description || '',
+          cover_image: coverImage,
+          images: JSON.stringify(allImages),
+          ordre: Number(form.ordre) || 0,
+          alt:
+            String(form._alt || '').trim() ||
+            `Aubin Simo - Bilderfassung ${form.title || ''}`.trim(),
+        };
+      } else if (activeSection.key === 'international' || activeSection.key === 'event') {
         payload = {
           id: editingId,
           type: activeSection.key,
@@ -456,6 +645,7 @@ export default function AdminDashboard({ email, initial }) {
       setSelectedExisting('');
       setForm(emptyForm(activeSection));
       setNewFiles([]);
+      setCoverFile(null);
       router.refresh();
     } catch (submitError) {
       setError(submitError.message || 'Une erreur est survenue.');
@@ -656,9 +846,11 @@ export default function AdminDashboard({ email, initial }) {
                     htmlFor="admin-existing-item"
                     className="mb-2 block text-sm font-bold text-blue-950"
                   >
-                    {['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
-                      ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
-                      : 'Choisir un élément existant pour lui ajouter des photos…'}
+                    {activeSection.key === 'images_sport'
+                      ? 'Choisir une discipline existante (Supabase ou sports de base)…'
+                      : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
+                        ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
+                        : 'Choisir un élément existant pour lui ajouter des photos…'}
                   </label>
                   <select
                     id="admin-existing-item"
@@ -667,16 +859,16 @@ export default function AdminDashboard({ email, initial }) {
                     className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   >
                     <option value="">+ Créer un nouveau titre</option>
-                    {(items[activeSection.key] || []).map((row) => (
-                      <option key={existingKey(row)} value={existingKey(row)}>
-                        {safeText(row.title) || 'Sans titre'}
+                    {existingOptions(activeSection, items).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
-                    Tous les titres et leurs photos proviennent de Supabase. La
-                    sélection pré-remplit le formulaire pour ajouter des photos
-                    ou modifier l’élément.
+                    {activeSection.key === 'images_sport'
+                      ? 'Les disciplines publiées et les sports de base sont proposés. La sélection pré-remplit le titre, la couverture, les photos et la description.'
+                      : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
                   </p>
                 </div>
                 {activeSection.fields.map((field) => (
@@ -706,22 +898,85 @@ export default function AdminDashboard({ email, initial }) {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <label
-                  htmlFor="admin-images"
-                  className="mb-2 block text-sm font-bold text-blue-950"
-                >
-                  {activeSection.multiple
-                    ? 'Photos (plusieurs possibles)'
-                    : 'Photo'}
-                </label>
-                <input
-                  id="admin-images"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                  multiple={activeSection.multiple}
-                  onChange={handleFiles}
-                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
-                />
+                {activeSection.key === 'images_sport' ? (
+                  <>
+                    <label
+                      htmlFor="admin-cover"
+                      className="mb-2 block text-sm font-bold text-blue-950"
+                    >
+                      Image principale (couverture)
+                    </label>
+                    <input
+                      id="admin-cover"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      onChange={handleCoverFile}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
+                    />
+                    {form._cover?.src ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <Image
+                          src={form._cover.src}
+                          alt={form._cover.alt || 'Couverture actuelle'}
+                          width={80}
+                          height={80}
+                          className="h-20 w-20 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-blue-950">
+                            Couverture actuelle
+                          </p>
+                          <button
+                            type="button"
+                            onClick={removeCover}
+                            className="mt-1 text-xs font-bold text-red-600"
+                          >
+                            Retirer la couverture
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {coverFile ? (
+                      <p className="mt-2 break-words text-xs text-gray-600">
+                        · {coverFile.name} (à uploader comme couverture)
+                      </p>
+                    ) : null}
+
+                    <label
+                      htmlFor="admin-images"
+                      className="mb-2 mt-6 block text-sm font-bold text-blue-950"
+                    >
+                      Images secondaires (plusieurs possibles)
+                    </label>
+                    <input
+                      id="admin-images"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      multiple
+                      onChange={handleFiles}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="admin-images"
+                      className="mb-2 block text-sm font-bold text-blue-950"
+                    >
+                      {activeSection.multiple
+                        ? 'Photos (plusieurs possibles)'
+                        : 'Photo'}
+                    </label>
+                    <input
+                      id="admin-images"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      multiple={activeSection.multiple}
+                      onChange={handleFiles}
+                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
+                    />
+                  </>
+                )}
 
                 <div className="mt-4">
                   <label

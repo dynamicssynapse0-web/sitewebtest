@@ -101,12 +101,17 @@ export function buildUniqueUploadName({
   index = 0,
   extension = 'jpg',
   mimeType,
+  tag = '',
 } = {}) {
   const base = uploadFileBase(title);
   const candidate = String(extension || '').toLowerCase();
   const safeExtension = ALLOWED_UPLOAD_EXTENSIONS.has(candidate)
     ? candidate
     : MIME_TO_EXTENSION[String(mimeType || '').toLowerCase()] || 'jpg';
+  const safeTag = String(tag || '')
+    .toLocaleLowerCase('fr')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
-  return `aubin-simo-bilderfassung-${base}-${getUploadTimestamp()}-${index}-${randomSuffix()}.${safeExtension}`;
+  return `aubin-simo-bilderfassung-${base}${safeTag ? `-${safeTag}` : ''}-${getUploadTimestamp()}-${index}-${randomSuffix()}.${safeExtension}`;
 }

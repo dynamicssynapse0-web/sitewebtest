@@ -2,8 +2,10 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
+import ImagesSportSection from '@/components/ImagesSportSection';
 import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
 import { getAllEvents } from '@/lib/events';
+import { getImagesSportDisciplines } from '@/lib/imagesSport';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
 import { getAllSportifs } from '@/lib/sportifsSemaine';
 import { getMomentsForts, getPortraitsExclusifs } from '@/lib/vitrine';
@@ -20,12 +22,14 @@ export default async function Home() {
     sportifs,
     momentsForts,
     portraitsExclusifs,
+    imagesSport,
   ] = await Promise.all([
     getAllEvents(),
     getAllInternationalCompetitions(),
     getAllSportifs(),
     getMomentsForts(),
     getPortraitsExclusifs(),
+    getImagesSportDisciplines(),
   ]);
 
   return (
@@ -188,6 +192,8 @@ export default async function Home() {
     )}
   </div>
 </section>
+
+        <ImagesSportSection sports={imagesSport} />
 
         <SportifsDeLaSemaine sportifs={sportifs} />
 

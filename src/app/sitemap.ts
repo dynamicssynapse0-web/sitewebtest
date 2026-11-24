@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getAllEvents } from '@/lib/events';
 import { getAllInternationalCompetitions } from '@/lib/internationalCompetitions';
-import { listeSports } from '@/lib/sports';
+import { getAllSports } from '@/lib/sports';
 import { getAllSportifs } from '@/lib/sportifsSemaine';
 import { absoluteUrl } from '@/lib/seo';
 
@@ -17,10 +17,11 @@ function lastModifiedFromDate(date: unknown): Date {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [events, competitions, sportifs] = await Promise.all([
+  const [events, competitions, sportifs, sports] = await Promise.all([
     getAllEvents(),
     getAllInternationalCompetitions(),
     getAllSportifs(),
+    getAllSports(),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -33,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/contact'), lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
   ];
 
-  const sportPages: MetadataRoute.Sitemap = listeSports.map(({ slug }) => ({
+  const sportPages: MetadataRoute.Sitemap = sports.map(({ slug }) => ({
     url: absoluteUrl(`/sports/${slug}`),
     lastModified: now,
     changeFrequency: 'monthly',

@@ -2,6 +2,7 @@ import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import { getPublicSupabase } from './publicClient';
 import {
   hasValidTitle,
+  mergeImages,
   normalizeImages,
   slugify,
   sortByDateDesc,
@@ -174,5 +175,49 @@ export async function getRemoteVitrine(section) {
   );
   return rows
     .map((row, index) => mapVitrine(row, section, index))
+    .sort((a, b) => a.order - b.order);
+}
+
+// Discipline photo : la couverture est distincte des images secondaires, mais
+// `images` contient la galerie complète pour les pages /sports et /galerie.
+export function mapImagesSport(row, index = 0) {
+  const title = String(row.title ?? row.titre ?? '').trim() || 'Sans titre';
+  const secondaryImages = normalizeImages(
+    firstValue(row.images, row.photos, row.image_urls),
+    title
+  );
+  const coverImages = normalizeImages(
+    firstValue(row.cover_image, row.coverImage, row.image, row.image_url),
+    title
+  );
+  const coverImage =
+    coverImages[0]?.src || secondaryImages[0]?.src || DEFAULT_OG_IMAGE;
+  const slug = slugify(row.slug || title) || `images-sport-${index + 1}`;
+
+  return {
+    id: row.id ?? null,
+    slug,
+    title,
+    description: firstValue(row.description, row.resume, row.excerpt),
+    coverImage,
+    image: coverImage,
+    alt: firstValue(row.alt, `${title} — photographie sportive`),
+    images: mergeImages(coverImage, secondaryImages),
+    secondaryImages,
+    imageCount: secondaryImages.length,
+    order: Number(row.ordre ?? row.order ?? 0) || 0,
+    source: 'supabase',
+  };
+}
+
+export async function getRemoteImagesSport() {
+  const rows = await fetchRows(
+    'images_sport',
+    {},
+    { column: 'ordre', ascending: true }
+  );
+  return rows
+    .filter(hasValidTitle)
+    .map(mapImagesSport)
     .sort((a, b) => a.order - b.order);
 }

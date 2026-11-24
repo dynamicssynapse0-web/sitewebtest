@@ -1,3 +1,8 @@
+import { getImagesSportDisciplines } from './imagesSport';
+import { DEFAULT_OG_IMAGE } from './seo';
+import { slugify } from './supabase/records';
+
+// Disciplines de base, toujours disponibles même sans Supabase.
 export const listeSports = [
   {
     nom: 'Football',
@@ -32,3 +37,75 @@ export const listeSports = [
     alt: 'Aubin Simo – photographie de boxe',
   },
 ];
+
+// Fusionne les disciplines publiées dans `images_sport` avec les sports de base.
+// Une ligne Supabase portant le même slug remplace la fiche statique (photo de
+// couverture, description et galerie), sans créer de doublon dans le menu.
+export function mergeSports(disciplines = []) {
+  const merged = new Map();
+
+  listeSports.forEach((sport) => {
+    merged.set(sport.slug, {
+      ...sport,
+      title: sport.nom,
+      coverImage: sport.image,
+      images: [],
+      secondaryImages: [],
+      imageCount: 0,
+      order: 0,
+      source: 'base',
+    });
+  });
+
+  [...disciplines]
+    .filter(Boolean)
+    .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+    .forEach((discipline) => {
+      const key = discipline.slug || slugify(discipline.title);
+      if (!key) return;
+
+      const base = merged.get(key) || {};
+      const coverImage =
+        discipline.coverImage ||
+        discipline.image ||
+        base.coverImage ||
+        DEFAULT_OG_IMAGE;
+      const images =
+        discipline.images?.length
+          ? discipline.images
+          : base.images || [];
+
+      merged.set(key, {
+        ...base,
+        ...discipline,
+        nom: discipline.title || base.nom,
+        title: discipline.title || base.title || base.nom,
+        slug: key,
+        icone: base.icone || '📸',
+        description: discipline.description || base.description || '',
+        coverImage,
+        image: coverImage,
+        alt: discipline.alt || base.alt || `Photographies de ${discipline.title}`,
+        images,
+        secondaryImages: discipline.secondaryImages?.length
+          ? discipline.secondaryImages
+          : base.secondaryImages || [],
+        imageCount: Number(discipline.imageCount ?? images.length) || 0,
+        order: Number(discipline.order ?? base.order ?? 0) || 0,
+        source: discipline.source || 'supabase',
+      });
+    });
+
+  return [...merged.values()];
+}
+
+export async function getAllSports() {
+  const disciplines = await getImagesSportDisciplines();
+  return mergeSports(disciplines);
+}
+
+export async function getSportBySlug(slug) {
+  if (!/^[a-z0-9-]+$/.test(String(slug || ''))) return null;
+  const sports = await getAllSports();
+  return sports.find((sport) => sport.slug === slug) ?? null;
+}

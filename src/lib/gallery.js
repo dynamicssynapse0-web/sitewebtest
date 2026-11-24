@@ -1,4 +1,5 @@
 import { getAllEvents } from './events';
+import { getImagesSportDisciplines } from './imagesSport';
 import { getAllInternationalCompetitions } from './internationalCompetitions';
 import { getAllSportifs } from './sportifsSemaine';
 import { getVitrineItems } from './vitrine';
@@ -17,14 +18,21 @@ function withContext(items, getContext) {
 }
 
 export async function getGalleryImages() {
-  const [events, competitions, sportifs, momentsForts, portraitsExclusifs] =
-    await Promise.all([
-      getAllEvents(),
-      getAllInternationalCompetitions(),
-      getAllSportifs(),
-      getVitrineItems('moment_fort'),
-      getVitrineItems('portrait_exclusif'),
-    ]);
+  const [
+    events,
+    competitions,
+    sportifs,
+    momentsForts,
+    portraitsExclusifs,
+    imagesSport,
+  ] = await Promise.all([
+    getAllEvents(),
+    getAllInternationalCompetitions(),
+    getAllSportifs(),
+    getVitrineItems('moment_fort'),
+    getVitrineItems('portrait_exclusif'),
+    getImagesSportDisciplines(),
+  ]);
 
   const allImages = [
     ...withContext(events, (event) => ({
@@ -51,6 +59,11 @@ export async function getGalleryImages() {
       title: item.title,
       category: 'Portrait exclusif',
       href: '/#portraits-exclusifs',
+    })),
+    ...withContext(imagesSport, (discipline) => ({
+      title: discipline.title,
+      category: 'Images Sport',
+      href: `/sports/${discipline.slug}`,
     })),
   ];
 

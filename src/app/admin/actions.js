@@ -9,6 +9,7 @@ import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 
 const ALLOWED_TABLES = new Set([
   'articles',
+  'images_sport',
   'sportifs_semaine',
   'vitrine_items',
 ]);
@@ -31,6 +32,7 @@ const PUBLIC_PATHS = [
   '/competitions-internationales/[slug]',
   '/sportifs-semaine/[id]',
   '/galerie',
+  '/sports',
   '/sports/[slug]',
   '/sitemap.xml',
 ];
@@ -40,6 +42,10 @@ function revalidatePublicContent(row, table) {
     const paths = new Set(PUBLIC_PATHS);
     const plainRow = row && typeof row === 'object' ? row : {};
     const slug = slugify(plainRow.slug || plainRow.title);
+
+    // L'accueil, /sports, /galerie et toutes les pages enfants dépendent des
+    // disciplines : une seule invalidation globale couvre la navigation entière.
+    revalidatePath('/', 'layout');
 
     if (table === 'articles' && slug) {
       paths.add(
@@ -51,6 +57,9 @@ function revalidatePublicContent(row, table) {
     if (table === 'sportifs_semaine') {
       if (slug) paths.add(`/sportifs-semaine/${slug}`);
       if (plainRow.id) paths.add(`/sportifs-semaine/${plainRow.id}`);
+    }
+    if (table === 'images_sport' && slug) {
+      paths.add(`/sports/${slug}`);
     }
 
     paths.forEach((path) => revalidatePath(path));
@@ -244,6 +253,17 @@ export async function saveArticle(row) {
 
 export async function deleteArticle(id) {
   return deleteItem('articles', id);
+}
+
+export async function saveImagesSport(row) {
+  if (!String(row?.title ?? '').trim()) {
+    return failure(new Error('Le titre de la discipline est requis.'));
+  }
+  return saveItem('images_sport', row);
+}
+
+export async function deleteImagesSport(id) {
+  return deleteItem('images_sport', id);
 }
 
 export async function saveSportif(row) {
