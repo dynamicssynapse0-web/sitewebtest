@@ -163,6 +163,45 @@ const SECTIONS = [
   },
 ];
 
+// Plusieurs rubriques publient plusieurs fiches sous un même titre (CAN 2017,
+// MTN Elite 1, un portrait…). En mode « créer », on garde cette identité et on
+// vide le champ distinctif (événement, date, joueur, sous-discipline…).
+function keptIdentity(section, form) {
+  const title = safeText(form?.title).trim();
+  if (['international', 'event', 'sportif'].includes(section?.key)) {
+    if (!title || title.toLocaleLowerCase('fr') === 'sans titre') return null;
+    return { field: 'title', value: title };
+  }
+  if (section?.key === 'categories_sport') {
+    const discipline = safeText(form?.discipline).trim();
+    if (!discipline) return null;
+    return { field: 'discipline', value: discipline };
+  }
+  return null;
+}
+
+function resetNotice(section, value) {
+  if (section?.key === 'international')
+    return `Nouvel événement sous « ${value} » : renseignez le titre de l'événement.`;
+  if (section?.key === 'event')
+    return `Nouvel événement sous « ${value} » : renseignez la date, le lieu et le sport.`;
+  if (section?.key === 'sportif')
+    return `Nouveau portrait sous « ${value} » : renseignez le nom du joueur.`;
+  if (section?.key === 'categories_sport')
+    return `Nouvelle catégorie en « ${value} » : renseignez la sous-discipline.`;
+  return '';
+}
+
+function newButtonLabel(section) {
+  if (section?.key === 'international' || section?.key === 'event')
+    return '➕ Nouvel événement (garder le titre)';
+  if (section?.key === 'sportif')
+    return '➕ Nouveau portrait (garder le titre)';
+  if (section?.key === 'categories_sport')
+    return '➕ Nouvelle catégorie (garder la discipline)';
+  return '➕ Nouvel élément (tout vider)';
+}
+
 function emptyForm(section) {
   const form = {
     id: null,
@@ -489,18 +528,12 @@ export default function AdminDashboard({ email, initial }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Remet le formulaire en mode création. Pour les grandes compétitions on
-  // garde uniquement le titre principal : l'événement, la couverture et les
-  // photos sont systématiquement vidés.
+  // Remet le formulaire en mode création : seule l'identité principale est
+  // conservée, tous les champs distinctifs et les photos sont vidés.
   function resetToNew(section) {
     const reset = emptyForm(section);
-    const keptTitle =
-      section?.key === 'international'
-        ? String(form.title || '').trim()
-        : '';
-    if (keptTitle && keptTitle.toLocaleLowerCase('fr') !== 'sans titre') {
-      reset.title = keptTitle;
-    }
+    const kept = keptIdentity(section, form);
+    if (kept) reset[kept.field] = kept.value;
     setSelectedExisting(NEW_ITEM_KEY);
     setEditingId(null);
     setForm(reset);
@@ -508,11 +541,7 @@ export default function AdminDashboard({ email, initial }) {
     setCoverFile(null);
     setCoverPreview('');
     setError('');
-    setNotice(
-      keptTitle
-        ? `Nouvel événement sous « ${keptTitle} » : renseignez le titre de l'événement.`
-        : ''
-    );
+    setNotice(kept ? resetNotice(section, kept.value) : '');
   }
 
   function applyExisting(event) {
@@ -533,7 +562,12 @@ export default function AdminDashboard({ email, initial }) {
         const row = (items.images_sport || []).find(
           (item) => rowOptionKey(item) === key
         );
-        if (!row) return;
+        // Ligne disparue après un refresh : on vide le formulaire au lieu de
+        // laisser les valeurs de la fiche précédente affichées.
+        if (!row) {
+          resetToNew(activeSection);
+          return;
+        }
         setForm(rowToForm(activeSection, row));
         setEditingId(row.id ?? null);
         setNotice('Discipline Supabase reprise avec ses photos. Vous pouvez en ajouter.');
@@ -542,7 +576,10 @@ export default function AdminDashboard({ email, initial }) {
 
       if (key.startsWith('base:')) {
         const sport = listeSports.find((item) => baseOptionKey(item) === key);
-        if (!sport) return;
+        if (!sport) {
+          resetToNew(activeSection);
+          return;
+        }
         setForm(
           rowToForm(activeSection, {
             title: sport.nom,
@@ -557,13 +594,17 @@ export default function AdminDashboard({ email, initial }) {
         return;
       }
 
+      resetToNew(activeSection);
       return;
     }
 
     const row = (items[activeSection.key] || []).find(
       (item) => existingKey(item) === key
     );
-    if (!row) return;
+    if (!row) {
+      resetToNew(activeSection);
+      return;
+    }
 
     setForm(rowToForm(activeSection, row));
     setEditingId(row.id ?? null);
@@ -900,11 +941,10 @@ export default function AdminDashboard({ email, initial }) {
       setEditingId(null);
       setSelectedExisting(NEW_ITEM_KEY);
       const nextForm = emptyForm(activeSection);
-      // Grandes compétitions : garde le titre principal pour enchaîner avec
-      // un autre événement, mais vide le titre de l'événement et les photos.
-      if (activeSection.key === 'international') {
-        nextForm.title = String(form.title || '').trim();
-      }
+      // Après une publication, on peut enchaîner avec une autre fiche sous la
+      // même identité sans retaper le titre / la discipline.
+      const kept = keptIdentity(activeSection, form);
+      if (kept) nextForm[kept.field] = kept.value;
       setForm(nextForm);
       setNewFiles([]);
       setCoverFile(null);
@@ -941,7 +981,13 @@ export default function AdminDashboard({ email, initial }) {
         ),
       }));
       setNotice('Élément supprimé.');
-      setSelectedExisting(NEW_ITEM_KEY);
+      // Si la fiche supprimée était ouverte dans le formulaire, on ne doit pas
+      // laisser ses anciennes valeurs (titre, photos…) affichées.
+      if (String(editingId ?? '') === String(row.id ?? '')) {
+        resetToNew(section);
+      } else {
+        setSelectedExisting(NEW_ITEM_KEY);
+      }
       router.refresh();
     } catch (deleteError) {
       setError(deleteError.message || 'Suppression impossible.');
@@ -1144,18 +1190,16 @@ export default function AdminDashboard({ email, initial }) {
                       : activeSection.key === 'categories_sport'
                         ? 'La sélection pré-remplit la discipline, la couverture et les 4 photos maximum.'
                         : activeSection.key === 'international'
-                          ? 'Choisissez « + Créer un nouveau titre » ou utilisez le bouton ci-dessous : seul le titre principal est conservé. Le titre de l’événement et les photos sont vidés.'
-                          : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
+                          ? 'Choisissez « + Créer un nouveau titre » ou le bouton ci-dessous : seul le titre principal est conservé, le titre de l’événement et les photos sont vidés.'
+                          : 'La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément. « + Créer un nouveau titre » vide les champs distinctifs et les photos.'}
                   </p>
-                  {activeSection.key === 'international' ? (
-                    <button
-                      type="button"
-                      onClick={() => resetToNew(activeSection)}
-                      className="mt-3 rounded-full border border-red-500 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
-                    >
-                      ➕ Nouvel événement (garder le titre)
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => resetToNew(activeSection)}
+                    className="mt-3 rounded-full border border-red-500 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                  >
+                    {newButtonLabel(activeSection)}
+                  </button>
                 </div>
                 {activeSection.fields.map((field) => (
                   <div
