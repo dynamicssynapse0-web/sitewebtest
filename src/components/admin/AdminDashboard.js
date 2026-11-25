@@ -217,6 +217,7 @@ function rowToForm(section, row) {
   return {
     ...form,
     id: safeRow.id ?? null,
+    slug: safeText(safeRow.slug),
     _images: images,
     _cover: cover,
     cover_image: cover?.src || '',
@@ -243,6 +244,17 @@ function existingOptions(section, items) {
       label: `${safeText(row.discipline) || 'Sport'} — ${
         safeText(row.sous_discipline) || 'Sans titre'
       }`,
+    }));
+  }
+  if (section.key === 'international') {
+    return (items.international || []).map((row) => ({
+      value: existingKey(row),
+      label: [
+        safeText(row.title) || 'Sans titre',
+        safeText(row.competition),
+      ]
+        .filter(Boolean)
+        .join(' — '),
     }));
   }
   if (section.key !== 'images_sport') {
@@ -752,6 +764,7 @@ export default function AdminDashboard({ email, initial }) {
       } else if (isInternational) {
         payload = {
           id: editingId,
+          slug: form.slug || '',
           type: 'international',
           title: form.title,
           competition: form.competition || '',

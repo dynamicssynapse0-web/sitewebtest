@@ -289,6 +289,11 @@ export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
                   className="block py-2 text-sm text-blue-100 hover:text-red-300"
                 >
                   {competition.title}
+                  {competition.eventTitle ? (
+                    <span className="mt-0.5 block text-[11px] text-blue-300">
+                      {competition.eventTitle}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
             </div>

@@ -8,6 +8,7 @@ import {
   MAX_CATEGORY_IMAGES,
   parseImagesField,
 } from '@/lib/categoriesSport';
+import { internationalCompetitionSlug } from '@/lib/internationalCompetitions';
 import { slugify } from '@/lib/supabase/records';
 import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
@@ -276,6 +277,18 @@ export async function saveInternationalCompetition(row) {
     const title = String(row?.title ?? '').trim();
     if (!title) throw new Error('Le titre de la compétition est requis.');
 
+    const eventTitle = String(row?.competition ?? '').trim();
+    // À la création, le slug combine le titre et l'événement afin que
+    // « CAN 2017 — Cameroun vs Brésil » et « CAN 2017 — Cameroun vs Nigeria »
+    // aient deux URLs distinctes. En modification, on conserve le slug existant
+    // pour ne pas casser les liens déjà publiés.
+    const previousSlug = String(row?.slug ?? '').trim();
+    const slug =
+      row?.id && previousSlug
+        ? slugify(previousSlug)
+        : internationalCompetitionSlug(title, eventTitle);
+    if (!slug) throw new Error('Impossible de générer une URL valide.');
+
     const coverImage = String(row?.cover_image ?? '').trim();
     if (!coverImage) {
       throw new Error('Une photo de couverture est obligatoire.');
@@ -295,6 +308,8 @@ export async function saveInternationalCompetition(row) {
       ...row,
       type: 'international',
       title,
+      competition: eventTitle,
+      slug,
       cover_image: coverImage,
       images,
     });
