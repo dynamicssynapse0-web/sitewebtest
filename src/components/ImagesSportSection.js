@@ -95,10 +95,6 @@ export default function ImagesSportSection({ sports = [] }) {
             Images Sport
           </h2>
         </div>
-        <p className="max-w-md text-sm leading-6 text-gray-600">
-          Retrouvez chaque discipline en images : la couverture et toutes les
-          photos disponibles dans une galerie plein écran.
-        </p>
       </div>
 
       {disciplines.length === 0 ? (
