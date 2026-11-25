@@ -32,6 +32,11 @@ import {
   saveVitrine,
 } from '@/app/admin/actions';
 
+// Valeur explicite du sélecteur pour « créer un nouvel élément ». Une chaîne
+// vide pouvait être confondue avec une ligne Supabase sans clé et empêcher le
+// reset du formulaire.
+const NEW_ITEM_KEY = '__new__';
+
 const sportOptions = listeSports.map(({ nom }) => ({ value: nom, label: nom }));
 const categoryDisciplineOptions = CATEGORY_DISCIPLINES.map((discipline) => ({
   value: discipline,
@@ -427,7 +432,7 @@ export default function AdminDashboard({ email, initial }) {
   const [items, setItems] = useState(initial);
   const [activeKey, setActiveKey] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [selectedExisting, setSelectedExisting] = useState('');
+  const [selectedExisting, setSelectedExisting] = useState(NEW_ITEM_KEY);
   const [form, setForm] = useState({});
   const [newFiles, setNewFiles] = useState([]);
   const [coverFile, setCoverFile] = useState(null);
@@ -449,7 +454,7 @@ export default function AdminDashboard({ email, initial }) {
   function openSection(section) {
     setActiveKey(section.key);
     setEditingId(null);
-    setSelectedExisting('');
+    setSelectedExisting(NEW_ITEM_KEY);
     setForm(emptyForm(section));
     setNewFiles([]);
     setCoverFile(null);
@@ -461,7 +466,7 @@ export default function AdminDashboard({ email, initial }) {
   function closeSection() {
     setActiveKey(null);
     setEditingId(null);
-    setSelectedExisting('');
+    setSelectedExisting(NEW_ITEM_KEY);
     setForm({});
     setNewFiles([]);
     setCoverFile(null);
@@ -484,36 +489,44 @@ export default function AdminDashboard({ email, initial }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Remet le formulaire en mode création. Pour les grandes compétitions on
+  // garde uniquement le titre principal : l'événement, la couverture et les
+  // photos sont systématiquement vidés.
+  function resetToNew(section) {
+    const reset = emptyForm(section);
+    const keptTitle =
+      section?.key === 'international'
+        ? String(form.title || '').trim()
+        : '';
+    if (keptTitle && keptTitle.toLocaleLowerCase('fr') !== 'sans titre') {
+      reset.title = keptTitle;
+    }
+    setSelectedExisting(NEW_ITEM_KEY);
+    setEditingId(null);
+    setForm(reset);
+    setNewFiles([]);
+    setCoverFile(null);
+    setCoverPreview('');
+    setError('');
+    setNotice(
+      keptTitle
+        ? `Nouvel événement sous « ${keptTitle} » : renseignez le titre de l'événement.`
+        : ''
+    );
+  }
+
   function applyExisting(event) {
     const key = event.target.value;
-    setSelectedExisting(key);
     setError('');
     setCoverFile(null);
     setCoverPreview('');
     setNewFiles([]);
 
-    if (!activeSection || !key) {
-      const reset = emptyForm(activeSection || SECTIONS[0]);
-      // Grandes compétitions : on conserve uniquement le titre principal pour
-      // publier un autre événement sous ce même titre, sans recopier l'ancien
-      // « Titre de l'événement » ni ses photos.
-      const keptTitle = String(form.title || '').trim();
-      if (
-        activeSection?.key === 'international' &&
-        keptTitle &&
-        keptTitle.toLocaleLowerCase('fr') !== 'sans titre'
-      ) {
-        reset.title = keptTitle;
-      }
-      setEditingId(null);
-      setForm(reset);
-      setNotice(
-        activeSection?.key === 'international' && keptTitle
-          ? `Nouvel événement sous « ${keptTitle} » : renseignez le titre de l'événement.`
-          : ''
-      );
+    if (!activeSection || key === NEW_ITEM_KEY || !key) {
+      resetToNew(activeSection || SECTIONS[0]);
       return;
     }
+    setSelectedExisting(key);
 
     if (activeSection.key === 'images_sport') {
       if (key.startsWith('row:')) {
@@ -885,7 +898,7 @@ export default function AdminDashboard({ email, initial }) {
 
       setNotice('Enregistrement effectué.');
       setEditingId(null);
-      setSelectedExisting('');
+      setSelectedExisting(NEW_ITEM_KEY);
       const nextForm = emptyForm(activeSection);
       // Grandes compétitions : garde le titre principal pour enchaîner avec
       // un autre événement, mais vide le titre de l'événement et les photos.
@@ -928,7 +941,7 @@ export default function AdminDashboard({ email, initial }) {
         ),
       }));
       setNotice('Élément supprimé.');
-      setSelectedExisting('');
+      setSelectedExisting(NEW_ITEM_KEY);
       router.refresh();
     } catch (deleteError) {
       setError(deleteError.message || 'Suppression impossible.');
@@ -1088,7 +1101,6 @@ export default function AdminDashboard({ email, initial }) {
             </section>
 
             <form
-              key={`${activeKey}-${selectedExisting || 'new'}-${editingId || 'none'}`}
               onSubmit={handleSubmit}
               autoComplete="off"
               className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
@@ -1119,7 +1131,7 @@ export default function AdminDashboard({ email, initial }) {
                     onChange={applyExisting}
                     className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200"
                   >
-                    <option value="">+ Créer un nouveau titre</option>
+                    <option value={NEW_ITEM_KEY}>+ Créer un nouveau titre</option>
                     {existingOptions(activeSection, items).map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -1132,9 +1144,18 @@ export default function AdminDashboard({ email, initial }) {
                       : activeSection.key === 'categories_sport'
                         ? 'La sélection pré-remplit la discipline, la couverture et les 4 photos maximum.'
                         : activeSection.key === 'international'
-                          ? 'Pour publier un autre événement sous le même titre, choisissez « + Créer un nouveau titre » : le titre est conservé, le titre de l’événement et les photos sont vidés.'
+                          ? 'Choisissez « + Créer un nouveau titre » ou utilisez le bouton ci-dessous : seul le titre principal est conservé. Le titre de l’événement et les photos sont vidés.'
                           : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
                   </p>
+                  {activeSection.key === 'international' ? (
+                    <button
+                      type="button"
+                      onClick={() => resetToNew(activeSection)}
+                      className="mt-3 rounded-full border border-red-500 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                    >
+                      ➕ Nouvel événement (garder le titre)
+                    </button>
+                  ) : null}
                 </div>
                 {activeSection.fields.map((field) => (
                   <div
