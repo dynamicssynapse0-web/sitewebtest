@@ -10,6 +10,12 @@ import {
 export const MAX_UPLOAD_WIDTH = 1600;
 export const UPLOAD_QUALITY = 0.82;
 
+// Paliers essayés dans l'ordre jusqu'à obtenir un fichier ≤ 3 Mo.
+//Une photo très lourde n'est donc jamais rejetée pour cause de taille :
+// on diminue d'abord la qualité, puis les dimensions.
+const WIDTH_STEPS = [1600, 1400, 1200, 1000, 800, 640, 480];
+const QUALITY_STEPS = [UPLOAD_QUALITY, 0.7, 0.58, 0.45, 0.35, 0.25];
+
 // Compatibilité : l'extension renvoyée est toujours une extension photo autorisée.
 export function getFileExtension(fileName) {
   return getUploadExtension(fileName) || 'jpg';
@@ -21,10 +27,21 @@ function canvasToBlob(canvas, type, quality) {
   });
 }
 
+// Garde le ratio d'origine et ne dépasse jamais 1600 px, même sur les photos
+// très portrait (hauteur aussi limitée).
+function scaledDimensions(naturalWidth, naturalHeight, targetSide) {
+  const scale = Math.min(1, targetSide / naturalWidth, targetSide / naturalHeight);
+  return {
+    width: Math.max(1, Math.round(naturalWidth * scale)),
+    height: Math.max(1, Math.round(naturalHeight * scale)),
+  };
+}
+
 /**
- * Vérifie le fichier (JPG/PNG/WebP, 15 Mo max), le redimensionne à 1600 px de
- * large maximum et l'encode en WebP qualité 0.82 (repli JPEG). Le fichier
- * compressé ne doit pas dépasser 3 Mo ; sinon l'upload est refusé.
+ * Vérifie le format (JPG/PNG/WebP uniquement), puis redimensionne à 1600 px max
+ * et encode en WebP qualité 0.82 (repli JPEG). Si le résultat dépasse 3 Mo, on
+ * réessaie avec une qualité puis une taille décroissantes jusqu'à ce qu'il
+ * passe sous la limite — la photo est compressée, pas refusée.
  */
 export async function compressImageForUpload(file) {
   const validationError = validateUploadFile(file, { stage: 'original' });
@@ -56,45 +73,55 @@ export async function compressImageForUpload(file) {
       throw new Error('Image illisible.');
     }
 
-    const scale = Math.min(1, MAX_UPLOAD_WIDTH / naturalWidth);
-    const width = Math.max(1, Math.round(naturalWidth * scale));
-    const height = Math.max(1, Math.round(naturalHeight * scale));
-
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Compression impossible sur ce navigateur.');
 
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    context.drawImage(image, 0, 0, width, height);
 
-    let blob = await canvasToBlob(canvas, 'image/webp', UPLOAD_QUALITY);
-    let extension = 'webp';
+    let smallest = null;
 
-    if (blob?.type !== 'image/webp' || blob.size === 0) {
-      blob = await canvasToBlob(canvas, 'image/jpeg', UPLOAD_QUALITY);
-      extension = 'jpg';
+    for (const targetSide of WIDTH_STEPS) {
+      const { width, height } = scaledDimensions(
+        naturalWidth,
+        naturalHeight,
+        targetSide
+      );
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0, width, height);
+
+      for (const quality of QUALITY_STEPS) {
+        let blob = await canvasToBlob(canvas, 'image/webp', quality);
+        let extension = 'webp';
+
+        if (blob?.type !== 'image/webp' || blob.size === 0) {
+          blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+          extension = 'jpg';
+        }
+
+        if (!blob || blob.size === 0) continue;
+
+        const result = {
+          blob,
+          extension,
+          compressed: true,
+          width,
+          height,
+          quality,
+          originalSize: file.size,
+          size: blob.size,
+        };
+        if (!smallest || blob.size < smallest.size) smallest = result;
+        if (blob.size <= MAX_COMPRESSED_FILE_BYTES) return result;
+      }
     }
 
-    if (!blob || blob.size === 0) {
-      throw new Error('Impossible de compresser cette image.');
-    }
-    if (blob.size > MAX_COMPRESSED_FILE_BYTES) {
-      throw new Error('Photo trop volumineuse après compression (3 Mo maximum).');
-    }
-
-    return {
-      blob,
-      extension,
-      compressed: true,
-      width,
-      height,
-      originalSize: file.size,
-      size: blob.size,
-    };
+    // Dernier recours : la version la plus légère obtenue est renvoyée plutôt
+    // que de rejeter la photo (cas extrême, quasi impossible en WebP).
+    if (smallest) return smallest;
+    throw new Error('Impossible de compresser cette image.');
   } catch (error) {
     throw error instanceof Error
       ? error

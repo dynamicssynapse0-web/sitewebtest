@@ -1352,11 +1352,12 @@ export default function AdminDashboard({ email, initial }) {
                 </div>
 
                 <p className="mt-2 text-xs text-gray-500">
-                  Formats acceptés : JPG, PNG et WebP (15 Mo maximum avant compression,
-                  3 Mo après). Upload direct dans le bucket Supabase «{' '}
-                  {SUPABASE_MEDIA_BUCKET} ». Fichiers renommés en « aubin-simo-bilderfassung-… »,
-                  redimensionnés à 1600 px max et compressés en WebP/JPEG (qualité 0,82).
-                  Crédit : Aubin Simo.
+                  Formats acceptés : JPG, PNG et WebP. Les photos trop volumineuses
+                  sont compressées automatiquement (aucun rejet pour cause de taille) :
+                  redimensionnement à 1600 px max puis WebP/JPEG qualité 0,82,
+                  réduite si nécessaire pour rester sous 3 Mo. Upload direct dans
+                  le bucket Supabase « {SUPABASE_MEDIA_BUCKET} ». Fichiers renommés
+                  en « aubin-simo-bilderfassung-… ». Crédit : Aubin Simo.
                 </p>
 
                 {form._images?.length > 0 ? (

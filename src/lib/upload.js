@@ -4,7 +4,9 @@
 
 const ACCENTED_CHARACTERS = /[\u0300-\u036f]/g;
 
-export const MAX_ORIGINAL_FILE_BYTES = 15 * 1024 * 1024; // 15 Mo avant compression
+// Taille de référence avant compression. Ce n'est plus un motif de rejet :
+// toute photo JPG/PNG/WebP est compressée automatiquement avant l'upload.
+export const MAX_ORIGINAL_FILE_BYTES = 15 * 1024 * 1024;
 export const MAX_COMPRESSED_FILE_BYTES = 3 * 1024 * 1024; // 3 Mo après compression
 
 export const ALLOWED_UPLOAD_TYPES = new Set([
@@ -74,12 +76,14 @@ export function validateUploadFile(file, { stage = 'original' } = {}) {
     return 'L’extension et le type du fichier ne correspondent pas.';
   }
 
-  const limit =
-    stage === 'compressed' ? MAX_COMPRESSED_FILE_BYTES : MAX_ORIGINAL_FILE_BYTES;
-  if (Number(file.size || 0) > limit) {
-    return stage === 'compressed'
-      ? 'Photo trop volumineuse après compression (3 Mo maximum).'
-      : 'Photo trop volumineuse (15 Mo maximum).';
+  // La taille d'origine n'est PAS un motif de rejet : une photo de 20 Mo est
+  // tout à fait acceptable puisqu'elle sera compressée avant l'envoi.
+  // Seul le résultat compressé doit rester sous 3 Mo.
+  if (
+    stage === 'compressed' &&
+    Number(file.size || 0) > MAX_COMPRESSED_FILE_BYTES
+  ) {
+    return 'Photo trop volumineuse après compression (3 Mo maximum).';
   }
 
   return null;
