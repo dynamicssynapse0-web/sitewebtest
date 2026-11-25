@@ -797,8 +797,12 @@ export default function AdminDashboard({ email, initial }) {
     if (!activeSection) return;
 
     setBusy(true);
-    setNotice('');
     setError('');
+    setNotice(
+      newFiles.length > 0 || coverFile
+        ? 'Compression des photos en cours… ne fermez pas la page.'
+        : ''
+    );
 
     try {
       const isImagesSport = activeSection.key === 'images_sport';
@@ -1412,7 +1416,7 @@ export default function AdminDashboard({ email, initial }) {
                 className="mt-7 w-full rounded-full bg-red-600 px-6 py-4 text-base font-bold text-white shadow-lg transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {busy
-                  ? 'Enregistrement…'
+                  ? 'Compression / enregistrement…'
                   : editingId
                     ? 'Enregistrer les modifications'
                     : 'Publier'}
