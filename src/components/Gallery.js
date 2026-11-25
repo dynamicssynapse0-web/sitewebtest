@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Lightbox from 'yet-another-react-lightbox';
+import WhatsAppPhotoButton from './WhatsAppPhotoButton';
 import Counter from 'yet-another-react-lightbox/plugins/counter';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/counter.css';
@@ -175,15 +176,25 @@ export default function Gallery({
         }}
       />
 
-      {href && index >= 0 && photos[index] && (
-        <Link
-          href={href}
-          onClick={() => setIndex(-1)}
-          className="fixed bottom-5 left-1/2 z-[10001] -translate-x-1/2 rounded-full border border-white/20 bg-blue-950/90 px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition hover:bg-red-600"
-        >
-          {hrefLabel} <span aria-hidden="true">→</span>
-        </Link>
-      )}
+      {index >= 0 && photos[index] ? (
+        <>
+          <WhatsAppPhotoButton
+            message={`Bonjour Aubin Simo, je souhaite commander cette photo${sport ? ` de ${sport}` : ''} : ${photos[index].legend}.`}
+            imageUrl={photos[index].src}
+            label="Commander cette photo sur WhatsApp"
+            className="fixed bottom-20 right-4 z-[10001] rounded-full bg-green-500 px-5 py-2.5 text-sm font-bold text-white shadow-xl transition hover:bg-green-600 sm:bottom-5 sm:right-5"
+          />
+          {href ? (
+            <Link
+              href={href}
+              onClick={() => setIndex(-1)}
+              className="fixed bottom-5 left-1/2 z-[10001] -translate-x-1/2 rounded-full border border-white/20 bg-blue-950/90 px-5 py-2.5 text-sm font-semibold text-white shadow-xl transition hover:bg-red-600"
+            >
+              {hrefLabel} <span aria-hidden="true">→</span>
+            </Link>
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }

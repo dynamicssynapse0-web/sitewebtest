@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import Gallery from '@/components/Gallery';
+import WhatsAppPhotoButton from '@/components/WhatsAppPhotoButton';
 import { getCategorySportBySlug } from '@/lib/categoriesSport';
 import { DEFAULT_OG_IMAGE, pageMetadata } from '@/lib/seo';
 
@@ -32,9 +33,7 @@ export default async function CategorySportPage({ params }) {
   const category = await getCategorySportBySlug(discipline, slug);
   if (!category) notFound();
 
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour Aubin Simo, je souhaite commander des photos de ${category.sousDiscipline} (${category.discipline}).`
-  );
+  const whatsappMessage = `Bonjour Aubin Simo, je souhaite commander des photos de ${category.sousDiscipline} (${category.discipline}).`;
 
   return (
     <main className="min-h-screen bg-blue-950 text-white">
@@ -81,14 +80,11 @@ export default async function CategorySportPage({ params }) {
               Touchez une photo pour l’ouvrir. Les images sont protégées.
             </p>
           </div>
-          <a
-            href={`https://wa.me/237676978878?text=${whatsappMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <WhatsAppPhotoButton
+            message={whatsappMessage}
+            imageUrl={category.coverImage || DEFAULT_OG_IMAGE}
             className="inline-flex shrink-0 items-center justify-center rounded-full bg-green-500 px-6 py-3 text-sm font-bold text-white transition hover:bg-green-600"
-          >
-            Commander sur WhatsApp · 676 97 88 78
-          </a>
+          />
         </div>
 
         <Gallery

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import WhatsAppPhotoButton from './WhatsAppPhotoButton';
 
 const PROTECTED_SELECTOR = [
   'img',
@@ -20,11 +21,26 @@ function isProtectedTarget(target) {
   return Boolean(backgroundImage && backgroundImage !== 'none' && backgroundImage.includes('url('));
 }
 
+// Retrouve la photo exacte visée (y compris dans le lightbox) pour la joindre
+// au message WhatsApp.
+function findImageSrc(target) {
+  if (!(target instanceof Element)) return '';
+  const image = target.closest('img');
+  if (image) return image.currentSrc || image.src || '';
+  const container = target.closest('[data-image-protect], .yarl__slide, figure, picture');
+  const inner = container?.querySelector('img');
+  return inner ? inner.currentSrc || inner.src || '' : '';
+}
+
 export default function ImageProtection() {
   const [visible, setVisible] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
   const closeButtonRef = useRef(null);
 
-  const showNotice = useCallback(() => setVisible(true), []);
+  const showNotice = useCallback((src) => {
+    setImageUrl(src || '');
+    setVisible(true);
+  }, []);
 
   useEffect(() => {
     function markImages(root = document) {
@@ -39,7 +55,7 @@ export default function ImageProtection() {
       if (!isProtectedTarget(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
-      showNotice();
+      showNotice(findImageSrc(event.target));
     }
 
     function handleDragStart(event) {
@@ -47,7 +63,7 @@ export default function ImageProtection() {
       if (event.target instanceof HTMLElement) event.target.draggable = false;
       event.preventDefault();
       event.stopPropagation();
-      showNotice();
+      showNotice(findImageSrc(event.target));
     }
 
     markImages();
@@ -122,18 +138,16 @@ export default function ImageProtection() {
         </div>
 
         <p id="image-protection-message" className="text-sm leading-7 text-gray-700">
-          Image protégée © Le Chroniqueur / Bilderfassung. Pour obtenir ou acheter cette photo, contactez le numéro WhatsApp : 676 97 88 78
+          Image protégée © Le Chroniqueur / Bilderfassung. Pour obtenir ou acheter cette photo, contactez le numéro WhatsApp : 676 97 88 78. La photo sélectionnée sera jointe au message.
         </p>
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-          <a
-            href="https://wa.me/237676978878"
-            target="_blank"
-            rel="noopener noreferrer"
+          <WhatsAppPhotoButton
+            message="Bonjour Aubin Simo, je souhaite obtenir ou acheter cette photo Bilderfassung."
+            imageUrl={imageUrl}
+            label="Contacter sur WhatsApp"
             className="inline-flex flex-1 items-center justify-center rounded-full bg-green-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-green-700"
-          >
-            Contacter sur WhatsApp
-          </a>
+          />
           <button
             ref={closeButtonRef}
             type="button"

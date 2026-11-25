@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import Gallery from '@/components/Gallery';
+import WhatsAppPhotoButton from '@/components/WhatsAppPhotoButton';
 import {
   formatCompetitionDate,
   getInternationalCompetitionBySlug,
@@ -35,11 +36,9 @@ export default async function InternationalCompetitionPage({ params }) {
 
   if (!competition) notFound();
 
-  const whatsappMessage = encodeURIComponent(
-    `Bonjour Aubin Simo, je souhaite commander des photos de ${competition.title}${
-      competition.eventTitle ? ` — ${competition.eventTitle}` : ''
-    }.`
-  );
+  const whatsappMessage = `Bonjour Aubin Simo, je souhaite commander des photos de ${competition.title}${
+    competition.eventTitle ? ` — ${competition.eventTitle}` : ''
+  }.`;
 
   return (
     <main className="min-h-screen bg-blue-950 pb-20">
@@ -110,14 +109,11 @@ export default async function InternationalCompetitionPage({ params }) {
               {(competition.images?.length || 0) > 1 ? 's' : ''}
             </p>
           </div>
-          <a
-            href={`https://wa.me/237676978878?text=${whatsappMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <WhatsAppPhotoButton
+            message={whatsappMessage}
+            imageUrl={competition.coverImage || DEFAULT_OG_IMAGE}
             className="inline-flex shrink-0 items-center justify-center rounded-full bg-green-500 px-6 py-3 text-sm font-bold text-white transition hover:bg-green-600"
-          >
-            Commander sur WhatsApp · 676 97 88 78
-          </a>
+          />
         </div>
 
         <Gallery
