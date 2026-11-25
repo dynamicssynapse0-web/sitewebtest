@@ -101,9 +101,18 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-blue-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-400">
-            © Aubin Simo / Bilderfassung® | EMG | Tous droits réservés .
-          </p>
+          <div className="max-w-xl text-left">
+            <p className="text-sm text-gray-400">
+              © Aubin Simo / Bilderfassung® | EMG | Tous droits réservés .
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-gray-500">
+              Gestionnaire des droits d’auteur et droits d’image.
+              <br />
+              Toute reproduction, utilisation ou diffusion des contenus et
+              photographies de ce site sans autorisation écrite préalable est
+              strictement interdite.
+            </p>
+          </div>
           <div className="flex flex-col items-center gap-2 sm:items-end">
             <Link
               href="/admin"
