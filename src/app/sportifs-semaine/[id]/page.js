@@ -64,6 +64,11 @@ export default async function SportifSemainePage({ params }) {
           <h1 className="mt-3 max-w-3xl text-4xl font-extrabold tracking-tight sm:text-6xl">
             {portrait.title}
           </h1>
+          {portrait.nom || portrait.poste ? (
+            <p className="mt-3 text-lg font-semibold text-red-300 sm:text-xl">
+              {[portrait.nom, portrait.poste].filter(Boolean).join(' — ')}
+            </p>
+          ) : null}
           <blockquote className="mt-6 max-w-2xl border-l-4 border-red-500 pl-5 text-lg leading-relaxed text-white/90 sm:text-2xl">
             “{portrait.quote}”
           </blockquote>

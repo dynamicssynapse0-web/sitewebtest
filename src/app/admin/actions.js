@@ -195,6 +195,43 @@ async function removeUnusedMedia(supabase, sources) {
   return paths;
 }
 
+// Construit un slug lisible à partir du titre et d'un champ distinctif
+// (événement, date, joueur…). Les valeurs vides sont ignorées.
+function composedSlug(...parts) {
+  return slugify(
+    parts
+      .map((part) => String(part ?? '').trim())
+      .filter(Boolean)
+      .join('-')
+  );
+}
+
+// Dernier filet de sécurité : si deux fiches ont exactement les mêmes valeurs,
+// on ajoute -2, -3… au lieu de réutiliser (et donc d'écraser) une URL publiée.
+async function uniqueSlug(supabase, table, desired, currentId = null) {
+  const base = slugify(desired);
+  if (!base) return null;
+
+  const used = new Set();
+  try {
+    const { data, error } = await supabase.from(table).select('id, slug');
+    if (error) throw error;
+    (data || []).forEach((row) => {
+      if (currentId && String(row.id) === String(currentId)) return;
+      const existing = slugify(row.slug);
+      if (existing) used.add(existing);
+    });
+  } catch {
+    // Une lecture impossible ne doit pas bloquer l'enregistrement.
+  }
+
+  if (!used.has(base)) return base;
+  for (let index = 2; ; index += 1) {
+    const candidate = `${base}-${index}`;
+    if (!used.has(candidate)) return candidate;
+  }
+}
+
 async function saveItem(table, row) {
   try {
     if (!ALLOWED_TABLES.has(table)) throw new Error('Table non autorisée.');
@@ -204,10 +241,13 @@ async function saveItem(table, row) {
 
     const supabase = await requireAdmin();
     const plainRow = toPlainJson(row);
-    const payload = cleanRow({
-      ...plainRow,
-      slug: slugify(plainRow.slug || plainRow.title) || plainRow.slug || null,
-    });
+    const slug = await uniqueSlug(
+      supabase,
+      table,
+      plainRow.slug || plainRow.title,
+      plainRow.id
+    );
+    const payload = cleanRow({ ...plainRow, slug });
 
     const result = plainRow.id
       ? await supabase
@@ -259,14 +299,32 @@ async function deleteItem(table, id) {
   }
 }
 
-export async function saveArticle(row) {
-  if (!['event', 'international'].includes(row?.type)) {
-    return failure(new Error('Type d’article invalide.'));
+// Événements : même logique que les grandes compétitions. Deux événements
+// peuvent partager un titre ; la date et le lieu distinguent leurs URLs.
+export async function saveEvent(row) {
+  try {
+    const title = String(row?.title ?? '').trim();
+    if (!title) throw new Error('Le titre de l’événement est requis.');
+
+    const previousSlug = String(row?.slug ?? '').trim();
+    const slug =
+      row?.id && previousSlug
+        ? slugify(previousSlug)
+        : composedSlug(title, row?.date, row?.location, row?.season);
+    if (!slug) throw new Error('Impossible de générer une URL valide.');
+
+    return saveItem('articles', {
+      ...row,
+      type: 'event',
+      title,
+      slug,
+    });
+  } catch (error) {
+    return failure(error);
   }
-  return saveItem('articles', row);
 }
 
-export async function deleteArticle(id) {
+export async function deleteEvent(id) {
   return deleteItem('articles', id);
 }
 
@@ -362,11 +420,17 @@ export async function saveCategorySport(row) {
       );
     }
 
+    const previousSlug = String(row?.slug ?? '').trim();
+    const slug =
+      row?.id && previousSlug
+        ? slugify(previousSlug)
+        : slugify(`${discipline}-${sousDiscipline}`);
+
     return saveItem('categories_sport', {
       ...row,
       discipline,
       sous_discipline: sousDiscipline,
-      slug: slugify(`${discipline}-${sousDiscipline}`),
+      slug,
       // `images` est une colonne jsonb : on envoie un tableau, pas une chaîne
       // déjà sérialisée (sinon Supabase stocke un JSON string double-encodé).
       cover_image: coverImage,
@@ -381,8 +445,34 @@ export async function deleteCategorySport(id) {
   return deleteItem('categories_sport', id);
 }
 
+// Sportifs de la semaine : la page publique est /sportifs-semaine/[id] et
+// l'id public est le slug. Le nom du joueur distingue deux portraits qui
+// partagent le même titre.
 export async function saveSportif(row) {
-  return saveItem('sportifs_semaine', row);
+  try {
+    const title = String(row?.title ?? '').trim();
+    const playerName = String(row?.player_name ?? '').trim();
+    if (!title && !playerName) {
+      throw new Error('Le titre ou le nom du joueur est requis.');
+    }
+
+    const previousSlug = String(row?.slug ?? '').trim();
+    let slug = '';
+    if (row?.id && previousSlug) {
+      slug = slugify(previousSlug);
+    } else {
+      const parts = [title || playerName];
+      if (playerName && slugify(playerName) !== slugify(parts[0])) {
+        parts.push(playerName);
+      }
+      slug = composedSlug(...parts);
+    }
+    if (!slug) throw new Error('Impossible de générer une URL valide.');
+
+    return saveItem('sportifs_semaine', { ...row, slug });
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function deleteSportif(id) {

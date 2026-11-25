@@ -18,14 +18,14 @@ import {
   parseImagesField,
 } from '@/lib/categoriesSport';
 import {
-  deleteArticle,
   deleteCategorySport,
+  deleteEvent,
   deleteImagesSport,
   deleteInternationalCompetition,
   deleteSportif,
   deleteVitrine,
-  saveArticle,
   saveCategorySport,
+  saveEvent,
   saveImagesSport,
   saveInternationalCompetition,
   saveSportif,
@@ -257,6 +257,29 @@ function existingOptions(section, items) {
         .join(' — '),
     }));
   }
+  if (section.key === 'event') {
+    return (items.event || []).map((row) => ({
+      value: existingKey(row),
+      label: [
+        safeText(row.title) || 'Sans titre',
+        [safeText(row.date), safeText(row.location)].filter(Boolean).join(' · '),
+      ]
+        .filter(Boolean)
+        .join(' — '),
+    }));
+  }
+  if (section.key === 'sportif') {
+    return (items.sportif || []).map((row) => ({
+      value: existingKey(row),
+      label: [
+        safeText(row.title) || 'Sans titre',
+        safeText(row.player_name),
+      ]
+        .filter(Boolean)
+        .join(' — '),
+    }));
+  }
+
   if (section.key !== 'images_sport') {
     return (items[section.key] || []).map((row) => ({
       value: existingKey(row),
@@ -270,7 +293,9 @@ function existingOptions(section, items) {
   );
   const publishedOptions = published.map((row) => ({
     value: rowOptionKey(row),
-    label: `${safeText(row.title) || 'Sans titre'} · publié`,
+    label: `${safeText(row.title) || 'Sans titre'} · publié${
+      safeText(row.slug) ? ` (${safeText(row.slug)})` : ''
+    }`,
   }));
   const baseOptions = listeSports
     .filter((sport) => !publishedSlugs.has(sport.slug))
@@ -296,7 +321,7 @@ function actionsFor(key) {
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
   }
-  return { save: saveArticle, remove: deleteArticle };
+  return { save: saveEvent, remove: deleteEvent };
 }
 
 function itemSubtitle(section, row) {
@@ -744,7 +769,7 @@ export default function AdminDashboard({ email, initial }) {
         payload = {
           id: editingId,
           title: form.title,
-          slug: slugify(form.title),
+          slug: form.slug || slugify(form.title),
           description: form.description || '',
           cover_image: coverImage,
           images: JSON.stringify(allImages),
@@ -755,7 +780,7 @@ export default function AdminDashboard({ email, initial }) {
           id: editingId,
           discipline: form.discipline,
           sous_discipline: uploadTitle,
-          slug: slugify(`${form.discipline}-${uploadTitle}`),
+          slug: form.slug || slugify(`${form.discipline}-${uploadTitle}`),
           cover_image: coverImage,
           // Tableaux envoyés tels quels : le serveur sérialise une seule fois.
           images: allImages,
@@ -775,6 +800,7 @@ export default function AdminDashboard({ email, initial }) {
       } else if (activeSection.key === 'event') {
         payload = {
           id: editingId,
+          slug: form.slug || '',
           type: 'event',
           title: form.title,
           competition: form.competition || '',
@@ -790,6 +816,7 @@ export default function AdminDashboard({ email, initial }) {
       } else if (activeSection.key === 'sportif') {
         payload = {
           id: editingId,
+          slug: form.slug || '',
           title: form.title,
           player_name: form.player_name || '',
           position: form.position || '',
@@ -804,6 +831,7 @@ export default function AdminDashboard({ email, initial }) {
       } else {
         payload = {
           id: editingId,
+          slug: form.slug || '',
           section: activeSection.key,
           title: form.title,
           subtitle: form.subtitle || '',
