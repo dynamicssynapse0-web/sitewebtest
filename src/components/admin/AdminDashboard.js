@@ -371,9 +371,9 @@ function FieldInput({ field, value, onChange }) {
   const id = `admin-field-${field.name}`;
   const common = {
     id,
-    // Pas d'attribut name : évite l'autocomplétion du navigateur qui
-    // réinjecte l'ancien « Titre de l'événement » dans un nouvel élément.
-    autoComplete: 'off',
+    // Valeur « new-password » : les navigateurs n'autocomplètent pas ce type
+    // de champ, même quand un ancien titre a déjà été saisi plus haut.
+    autoComplete: 'new-password',
     value: value ?? '',
     onChange: (event) => onChange(field.name, event.target.value),
     placeholder: field.placeholder,
@@ -1088,6 +1088,7 @@ export default function AdminDashboard({ email, initial }) {
             </section>
 
             <form
+              key={`${activeKey}-${selectedExisting || 'new'}-${editingId || 'none'}`}
               onSubmit={handleSubmit}
               autoComplete="off"
               className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
@@ -1274,7 +1275,7 @@ export default function AdminDashboard({ email, initial }) {
                   <input
                     id="admin-photo-alt"
                     type="text"
-                    autoComplete="off"
+                    autoComplete="new-password"
                     value={form._alt || ''}
                     onChange={(event) => setField('_alt', event.target.value)}
                     placeholder={`Aubin Simo - Bilderfassung ${form.title || ''}`.trim()}
