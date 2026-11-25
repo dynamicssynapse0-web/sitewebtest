@@ -102,7 +102,7 @@ export default function Footer() {
 
         <div className="border-t border-blue-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-400">
-            © {new Date().getFullYear()} Bilderfassung par Aubin Simo. Tous droits réservés.
+            © Aubin Simo / Bilderfassung® | EMG | Tous droits réservés .
           </p>
           <div className="flex flex-col items-center gap-2 sm:items-end">
             <Link
