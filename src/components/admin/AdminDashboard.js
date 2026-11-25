@@ -371,7 +371,9 @@ function FieldInput({ field, value, onChange }) {
   const id = `admin-field-${field.name}`;
   const common = {
     id,
-    name: field.name,
+    // Pas d'attribut name : évite l'autocomplétion du navigateur qui
+    // réinjecte l'ancien « Titre de l'événement » dans un nouvel élément.
+    autoComplete: 'off',
     value: value ?? '',
     onChange: (event) => onChange(field.name, event.target.value),
     placeholder: field.placeholder,
@@ -406,6 +408,7 @@ function FieldInput({ field, value, onChange }) {
         <input
           id={id}
           name={field.name}
+          autoComplete="off"
           type="checkbox"
           checked={Boolean(value)}
           onChange={(event) => onChange(field.name, event.target.checked)}
@@ -490,9 +493,25 @@ export default function AdminDashboard({ email, initial }) {
     setNewFiles([]);
 
     if (!activeSection || !key) {
+      const reset = emptyForm(activeSection || SECTIONS[0]);
+      // Grandes compétitions : on conserve uniquement le titre principal pour
+      // publier un autre événement sous ce même titre, sans recopier l'ancien
+      // « Titre de l'événement » ni ses photos.
+      const keptTitle = String(form.title || '').trim();
+      if (
+        activeSection?.key === 'international' &&
+        keptTitle &&
+        keptTitle.toLocaleLowerCase('fr') !== 'sans titre'
+      ) {
+        reset.title = keptTitle;
+      }
       setEditingId(null);
-      setForm(emptyForm(activeSection || SECTIONS[0]));
-      setNotice('');
+      setForm(reset);
+      setNotice(
+        activeSection?.key === 'international' && keptTitle
+          ? `Nouvel événement sous « ${keptTitle} » : renseignez le titre de l'événement.`
+          : ''
+      );
       return;
     }
 
@@ -867,7 +886,13 @@ export default function AdminDashboard({ email, initial }) {
       setNotice('Enregistrement effectué.');
       setEditingId(null);
       setSelectedExisting('');
-      setForm(emptyForm(activeSection));
+      const nextForm = emptyForm(activeSection);
+      // Grandes compétitions : garde le titre principal pour enchaîner avec
+      // un autre événement, mais vide le titre de l'événement et les photos.
+      if (activeSection.key === 'international') {
+        nextForm.title = String(form.title || '').trim();
+      }
+      setForm(nextForm);
       setNewFiles([]);
       setCoverFile(null);
       setCoverPreview('');
@@ -1064,6 +1089,7 @@ export default function AdminDashboard({ email, initial }) {
 
             <form
               onSubmit={handleSubmit}
+              autoComplete="off"
               className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
             >
               <h3 className="mb-5 text-lg font-extrabold text-blue-950">
@@ -1104,7 +1130,9 @@ export default function AdminDashboard({ email, initial }) {
                       ? 'Les disciplines publiées et les sports de base sont proposés. La sélection pré-remplit le titre, la couverture, les photos et la description.'
                       : activeSection.key === 'categories_sport'
                         ? 'La sélection pré-remplit la discipline, la couverture et les 4 photos maximum.'
-                        : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
+                        : activeSection.key === 'international'
+                          ? 'Pour publier un autre événement sous le même titre, choisissez « + Créer un nouveau titre » : le titre est conservé, le titre de l’événement et les photos sont vidés.'
+                          : 'Tous les titres et leurs photos proviennent de Supabase. La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément.'}
                   </p>
                 </div>
                 {activeSection.fields.map((field) => (
@@ -1246,6 +1274,7 @@ export default function AdminDashboard({ email, initial }) {
                   <input
                     id="admin-photo-alt"
                     type="text"
+                    autoComplete="off"
                     value={form._alt || ''}
                     onChange={(event) => setField('_alt', event.target.value)}
                     placeholder={`Aubin Simo - Bilderfassung ${form.title || ''}`.trim()}
