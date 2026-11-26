@@ -11,12 +11,14 @@ import {
   parseImagesField,
 } from '@/lib/categoriesSport';
 import { internationalCompetitionSlug } from '@/lib/internationalCompetitions';
+import { ARTICLES_TABLE, resolveArticlesTable } from '@/lib/supabase/content';
 import { slugify } from '@/lib/supabase/records';
 import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 
 const ALLOWED_TABLES = new Set([
   'articles',
+  ARTICLES_TABLE,
   'images_sport',
   'categories_sport',
   'sportifs_semaine',
@@ -59,7 +61,7 @@ function revalidatePublicContent(row, table) {
     // disciplines : une seule invalidation globale couvre la navigation entière.
     revalidatePath('/', 'layout');
 
-    if (table === 'articles' && slug) {
+    if ((table === ARTICLES_TABLE || table === 'articles') && slug) {
       paths.add(
         plainRow.type === 'international'
           ? `/competitions-internationales/${slug}`
@@ -244,10 +246,18 @@ async function saveItem(table, row) {
     }
 
     const supabase = await requireAdmin();
+    const targetTable =
+      table === ARTICLES_TABLE || table === 'articles'
+        ? await resolveArticlesTable(supabase)
+        : table;
+    if (!ALLOWED_TABLES.has(targetTable)) {
+      throw new Error('Table non autorisée.');
+    }
+
     const plainRow = toPlainJson(row);
     const slug = await uniqueSlug(
       supabase,
-      table,
+      targetTable,
       plainRow.slug || plainRow.title,
       plainRow.id
     );
@@ -255,16 +265,16 @@ async function saveItem(table, row) {
 
     const result = plainRow.id
       ? await supabase
-          .from(table)
+          .from(targetTable)
           .update(payload)
           .eq('id', plainRow.id)
           .select()
           .single()
-      : await supabase.from(table).insert(payload).select().single();
+      : await supabase.from(targetTable).insert(payload).select().single();
 
     if (result.error) throw new Error(result.error.message);
 
-    revalidatePublicContent(result.data, table);
+    revalidatePublicContent(result.data, targetTable);
     return { ok: true, data: toPlainJson(result.data) };
   } catch (error) {
     return failure(error);
@@ -278,15 +288,22 @@ async function deleteItem(table, id) {
     }
 
     const supabase = await requireAdmin();
+    const targetTable =
+      table === ARTICLES_TABLE || table === 'articles'
+        ? await resolveArticlesTable(supabase)
+        : table;
+    if (!ALLOWED_TABLES.has(targetTable)) {
+      throw new Error('Suppression impossible.');
+    }
 
     // Capture de la ligne et de ses sources avant la suppression.
-    const deletedRow = await getDeletedRow(supabase, table, id);
+    const deletedRow = await getDeletedRow(supabase, targetTable, id);
     const sources = collectSources(deletedRow);
 
-    const { error } = await supabase.from(table).delete().eq('id', id);
+    const { error } = await supabase.from(targetTable).delete().eq('id', id);
     if (error) throw new Error(error.message);
 
-    revalidatePublicContent(deletedRow, table);
+    revalidatePublicContent(deletedRow, targetTable);
 
     // Nettoyage Storage après la suppression : un échec ici ne doit pas annuler
     // une suppression déjà effectuée (seuls des fichiers orphelins resteraient).
@@ -317,7 +334,7 @@ export async function saveEvent(row) {
         : composedSlug(title, row?.date, row?.location, row?.season);
     if (!slug) throw new Error('Impossible de générer une URL valide.');
 
-    return saveItem('articles', {
+    return saveItem(ARTICLES_TABLE, {
       ...row,
       type: 'event',
       title,
@@ -329,10 +346,10 @@ export async function saveEvent(row) {
 }
 
 export async function deleteEvent(id) {
-  return deleteItem('articles', id);
+  return deleteItem(ARTICLES_TABLE, id);
 }
 
-// Grandes compétitions : même table `articles` (type international) que
+// Grandes compétitions : même table `event_bilderfassung` (type international) que
 // getAllInternationalCompetitions(), avec les contraintes du nouveau formulaire.
 export async function saveInternationalCompetition(row) {
   try {
@@ -366,7 +383,7 @@ export async function saveInternationalCompetition(row) {
       throw new Error(`4 photos maximum pour la galerie (${images.length} reçues).`);
     }
 
-    return saveItem('articles', {
+    return saveItem(ARTICLES_TABLE, {
       ...row,
       type: 'international',
       title,
@@ -381,7 +398,7 @@ export async function saveInternationalCompetition(row) {
 }
 
 export async function deleteInternationalCompetition(id) {
-  return deleteItem('articles', id);
+  return deleteItem(ARTICLES_TABLE, id);
 }
 
 export async function saveImagesSport(row) {

@@ -58,7 +58,7 @@ const SECTIONS = [
   {
     key: 'international',
     label: 'Grandes compétitions',
-    hint: 'articles · type international',
+    hint: 'event_bilderfassung · type international',
     icon: '🌍',
     multiple: true,
     fields: [
@@ -78,7 +78,7 @@ const SECTIONS = [
   {
     key: 'event',
     label: 'Événements',
-    hint: 'articles · type event',
+    hint: 'event_bilderfassung · type event',
     icon: '📅',
     multiple: true,
     fields: [

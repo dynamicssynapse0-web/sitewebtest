@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import LogoutButton from '@/components/admin/LogoutButton';
 import { getAdminContext } from '@/lib/supabase/admin';
+import { resolveArticlesTable } from '@/lib/supabase/content';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
 import { hasValidTitle } from '@/lib/supabase/records';
@@ -55,6 +56,8 @@ async function fetchAllItems() {
     const supabase = await getServerSupabase();
     if (!supabase) return EMPTY_ITEMS;
 
+    const articlesTable = await resolveArticlesTable(supabase);
+
     const [
       events,
       internationals,
@@ -68,14 +71,14 @@ async function fetchAllItems() {
     ] = await Promise.all([
         fetchRows(
           supabase,
-          'articles',
+          articlesTable,
           { type: 'event' },
           'date',
           isArticleOfType('event')
         ),
         fetchRows(
           supabase,
-          'articles',
+          articlesTable,
           { type: 'international' },
           'date',
           isArticleOfType('international')

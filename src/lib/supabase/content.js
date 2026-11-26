@@ -10,6 +10,31 @@ import {
   toIsoDate,
 } from './records';
 
+// Table principale des événements et compétitions. L'ancienne table `articles`
+// reste en secours le temps que le SQL de migration soit exécuté.
+export const ARTICLES_TABLE = 'event_bilderfassung';
+
+export function isMissingTableError(error) {
+  const message = String(error?.message || '');
+  return (
+    /PGRST205/i.test(message) ||
+    /Could not find the table/i.test(message) ||
+    /does not exist/i.test(message)
+  );
+}
+
+export async function resolveArticlesTable(supabase) {
+  if (!supabase) return 'articles';
+
+  try {
+    const { error } = await supabase.from(ARTICLES_TABLE).select('id').limit(0);
+    if (error && isMissingTableError(error)) return 'articles';
+    return ARTICLES_TABLE;
+  } catch {
+    return ARTICLES_TABLE;
+  }
+}
+
 export async function fetchRows(table, filters = {}, order) {
   const supabase = getPublicSupabase();
   if (!supabase) return [];
@@ -196,8 +221,9 @@ export function mapVitrine(row, section, index = 0) {
 }
 
 export async function getRemoteArticles(type) {
+  const table = await resolveArticlesTable(getPublicSupabase());
   const rows = await fetchRows(
-    'articles',
+    table,
     { type },
     { column: 'date', ascending: false }
   );
