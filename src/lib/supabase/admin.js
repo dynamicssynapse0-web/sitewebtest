@@ -11,7 +11,12 @@ const configuredTables = [
   .map((value) => value.trim())
   .filter(Boolean);
 
+// Table dédiée à ce projet : elle est lue en priorité. Les autres tables
+// restent en secours pour ne pas casser une installation existante.
+const ADMIN_TABLE = 'admin_bilderfassung';
+
 const USER_TABLE_CANDIDATES = [
+  ADMIN_TABLE,
   ...configuredTables,
   'utilisateurs',
   'users',
