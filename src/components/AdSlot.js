@@ -1,12 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import { normalizeAdLink } from '@/lib/adLink';
 
 // Emplacement publicitaire unique, alimenté par la table Supabase `ads`.
 // Toutes les variantes sont identifiées comme telles (« Publicité ») et les
 // liens sortants sont marqués `sponsored` pour les moteurs de recherche.
 export default function AdSlot({ ad, variant = 'banniere', className = '' }) {
-  if (!ad?.image || !ad?.linkUrl) return null;
+  const link = normalizeAdLink(ad?.linkUrl);
+  if (!ad?.image || !link.ok) return null;
 
   function trackClick() {
     if (!ad.id) return;
@@ -23,7 +25,7 @@ export default function AdSlot({ ad, variant = 'banniere', className = '' }) {
   }
 
   const linkProps = {
-    href: ad.linkUrl,
+    href: link.url,
     target: '_blank',
     rel: 'sponsored nofollow noopener noreferrer',
     onClick: trackClick,

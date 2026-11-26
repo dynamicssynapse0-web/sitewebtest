@@ -12,19 +12,13 @@ export async function POST(request) {
     const supabase = getPublicSupabase();
     if (!supabase) return NextResponse.json({ ok: true, counted: false });
 
-    const payload = {
+    const { error } = await supabase.from('ad_clicks').insert({
       ad_id: id,
       placement,
       created_at: new Date().toISOString(),
-    };
-    let result = await supabase.from('ad_clicks').insert(payload);
+    });
 
-    // Compatibilité avec les tables qui portent une colonne `count` NOT NULL.
-    if (result.error && /count/i.test(result.error.message)) {
-      result = await supabase.from('ad_clicks').insert({ ...payload, count: 1 });
-    }
-
-    if (result.error) return NextResponse.json({ ok: false });
+    if (error) return NextResponse.json({ ok: false });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false });

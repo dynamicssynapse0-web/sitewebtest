@@ -15,19 +15,12 @@ export async function POST(request) {
     const supabase = getPublicSupabase();
     if (!supabase) return NextResponse.json({ ok: true, counted: false });
 
-    const payload = { path, created_at: new Date().toISOString() };
-    let result = await supabase.from('site_pageviews').insert(payload);
+    const { error } = await supabase.from('site_pageviews').insert({
+      path,
+      created_at: new Date().toISOString(),
+    });
 
-    // Certaines installations Supabase ajoutent une colonne `count` NOT NULL :
-    // on réessaie alors avec une valeur explicite, sans casser l'installation
-    // de référence qui ne contient pas cette colonne.
-    if (result.error && /count/i.test(result.error.message)) {
-      result = await supabase
-        .from('site_pageviews')
-        .insert({ ...payload, count: 1 });
-    }
-
-    if (result.error) return NextResponse.json({ ok: false });
+    if (error) return NextResponse.json({ ok: false });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false });

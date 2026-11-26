@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { isAdPlacement } from '@/lib/ads';
+import { normalizeAdLink } from '@/lib/adLink';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import {
@@ -505,15 +506,9 @@ export async function saveAd(row) {
       throw new Error('Choisissez un emplacement publicitaire valide.');
     }
 
-    const linkUrl = String(row?.link_url ?? '').trim();
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(linkUrl);
-    } catch {
-      throw new Error('Renseignez une URL de destination valide (https://…).');
-    }
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      throw new Error('Seules les URLs http(s) sont acceptées.');
+    const link = normalizeAdLink(row?.link_url);
+    if (!link.ok) {
+      throw new Error(link.error);
     }
 
     if (!String(row?.cover_image ?? row?.image ?? '').trim()) {
@@ -539,7 +534,7 @@ export async function saveAd(row) {
       ...row,
       title,
       advertiser: String(row?.advertiser ?? '').trim() || title,
-      link_url: parsedUrl.toString(),
+      link_url: link.url,
       image: String(row?.image ?? row?.cover_image ?? '').trim(),
       active: row?.active !== false,
       ordre: Number(row?.ordre) || 0,

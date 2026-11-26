@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import { normalizeAdLink } from '@/lib/adLink';
 import { getBrowserSupabase } from '@/lib/supabase/client';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 import { buildUniqueUploadName, validateUploadFile } from '@/lib/upload';
@@ -199,8 +200,10 @@ const SECTIONS = [
       {
         name: 'link_url',
         label: 'Lien de destination',
-        type: 'url',
-        placeholder: 'https://exemple.com',
+        type: 'text',
+        inputMode: 'url',
+        placeholder: 'www.bilderfassung.com',
+        hint: 'Vous pouvez saisir www.exemple.com : le https:// est ajouté automatiquement.',
         required: true,
       },
       { name: 'date_debut', label: 'Date de début', type: 'date' },
@@ -497,6 +500,7 @@ function FieldInput({ field, value, onChange }) {
     value: value ?? '',
     onChange: (event) => onChange(field.name, event.target.value),
     placeholder: field.placeholder,
+    inputMode: field.inputMode,
     required: field.required,
     className:
       'w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200',
@@ -880,6 +884,8 @@ export default function AdminDashboard({ email, initial }) {
         : ''
     );
 
+    let destination;
+
     try {
       const isImagesSport = activeSection.key === 'images_sport';
       const isCategorySport = activeSection.key === 'categories_sport';
@@ -903,17 +909,9 @@ export default function AdminDashboard({ email, initial }) {
         if (!form.placement) {
           throw new Error('Choisissez un emplacement publicitaire.');
         }
-        if (!form.link_url) {
-          throw new Error('Renseignez le lien de destination.');
-        }
-        let destination;
-        try {
-          destination = new URL(form.link_url);
-        } catch {
-          throw new Error('Le lien de destination n’est pas une URL valide.');
-        }
-        if (!['http:', 'https:'].includes(destination.protocol)) {
-          throw new Error('Seuls les liens http(s) sont acceptés.');
+        destination = normalizeAdLink(form.link_url);
+        if (!destination.ok) {
+          throw new Error(destination.error);
         }
       }
 
@@ -994,7 +992,7 @@ export default function AdminDashboard({ email, initial }) {
           title: form.title,
           advertiser: form.advertiser || '',
           placement: form.placement,
-          link_url: form.link_url,
+          link_url: destination?.url || form.link_url,
           image: coverImage,
           alt: String(form._alt || '').trim() || `Publicité ${form.title}`,
           date_debut: form.date_debut || '',
@@ -1347,12 +1345,15 @@ export default function AdminDashboard({ email, initial }) {
                       value={form[field.name]}
                       onChange={setField}
                     />
+                    {field.hint ? (
+                      <p className="mt-1 text-xs text-gray-500">{field.hint}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                {['images_sport', 'categories_sport', 'international'].includes(
+                {['images_sport', 'categories_sport', 'international', 'ads'].includes(
                   activeSection.key
                 ) ? (
                   <>
