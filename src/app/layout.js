@@ -1,8 +1,10 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
+import Analytics from '@/components/Analytics';
 import Footer from '@/components/Footer';
 import ImageProtection from '@/components/ImageProtection';
 import Navbar from '@/components/Navbar';
+import PartnerStrip from '@/components/PartnerStrip';
 import { getActiveSportDisciplines } from '@/lib/categoriesSport';
 import { getAllInternationalCompetitions } from '@/lib/internationalCompetitions';
 import {
@@ -59,12 +61,14 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body className={inter.className}>
+        <Analytics />
         <ImageProtection />
         <Navbar
           sportsMenu={sportsMenu}
           competitionsMenu={competitionsMenu}
         />
         {children}
+        <PartnerStrip />
         <Footer />
       </body>
     </html>

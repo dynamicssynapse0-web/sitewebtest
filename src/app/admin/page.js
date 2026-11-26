@@ -7,6 +7,7 @@ import { getServerSupabase } from '@/lib/supabase/server';
 import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
 import { hasValidTitle } from '@/lib/supabase/records';
 import { isCategorySportRow } from '@/lib/categoriesSport';
+import { getAdClickCounts } from '@/lib/ads';
 
 function isArticleOfType(type) {
   return (row) =>
@@ -24,6 +25,8 @@ const EMPTY_ITEMS = {
   sportif: [],
   moment_fort: [],
   portrait_exclusif: [],
+  ads: [],
+  adClicks: {},
 };
 
 async function fetchRows(supabase, table, filters = {}, order, validate) {
@@ -60,6 +63,8 @@ async function fetchAllItems() {
       sportifs,
       moments,
       portraits,
+      ads,
+      adClicks,
     ] = await Promise.all([
         fetchRows(
           supabase,
@@ -85,6 +90,8 @@ async function fetchAllItems() {
           { section: 'portrait_exclusif' },
           'ordre'
         ),
+        fetchRows(supabase, 'ads', {}, 'ordre'),
+        getAdClickCounts(),
       ]);
 
     return {
@@ -95,6 +102,8 @@ async function fetchAllItems() {
       sportif: sportifs,
       moment_fort: moments,
       portrait_exclusif: portraits,
+      ads,
+      adClicks,
     };
   } catch {
     return EMPTY_ITEMS;

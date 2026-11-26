@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { isAdPlacement } from '@/lib/ads';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { getServerSupabase } from '@/lib/supabase/server';
 import {
@@ -19,6 +20,7 @@ const ALLOWED_TABLES = new Set([
   'categories_sport',
   'sportifs_semaine',
   'vitrine_items',
+  'ads',
 ]);
 
 const IMAGE_COLUMNS = [
@@ -42,6 +44,7 @@ const PUBLIC_PATHS = [
   '/sports',
   '/sports/[slug]',
   '/sports/[discipline]/[slug]',
+  '/annonceurs',
   '/sitemap.xml',
 ];
 
@@ -488,4 +491,64 @@ export async function saveVitrine(row) {
 
 export async function deleteVitrine(id) {
   return deleteItem('vitrine_items', id);
+}
+
+// Publicité : validation stricte de l'emplacement et du lien sortant avant
+// toute écriture. Le visuel est uploadé dans `media` comme les autres contenus.
+export async function saveAd(row) {
+  try {
+    const title = String(row?.title ?? '').trim();
+    if (!title || title.toLocaleLowerCase('fr') === 'sans titre') {
+      throw new Error('Le titre de la campagne est requis.');
+    }
+    if (!isAdPlacement(row?.placement)) {
+      throw new Error('Choisissez un emplacement publicitaire valide.');
+    }
+
+    const linkUrl = String(row?.link_url ?? '').trim();
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(linkUrl);
+    } catch {
+      throw new Error('Renseignez une URL de destination valide (https://…).');
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Seules les URLs http(s) sont acceptées.');
+    }
+
+    if (!String(row?.cover_image ?? row?.image ?? '').trim()) {
+      throw new Error('Le visuel de la publicité est obligatoire.');
+    }
+
+    const dateDebut = String(row?.date_debut ?? '');
+    const dateFin = String(row?.date_fin ?? '');
+    if (
+      dateDebut &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(dateDebut)
+    ) {
+      throw new Error('La date de début est invalide.');
+    }
+    if (dateFin && !/^\d{4}-\d{2}-\d{2}$/.test(dateFin)) {
+      throw new Error('La date de fin est invalide.');
+    }
+    if (dateDebut && dateFin && dateFin < dateDebut) {
+      throw new Error('La date de fin doit être postérieure à la date de début.');
+    }
+
+    return saveItem('ads', {
+      ...row,
+      title,
+      advertiser: String(row?.advertiser ?? '').trim() || title,
+      link_url: parsedUrl.toString(),
+      image: String(row?.image ?? row?.cover_image ?? '').trim(),
+      active: row?.active !== false,
+      ordre: Number(row?.ordre) || 0,
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function deleteAd(id) {
+  return deleteItem('ads', id);
 }

@@ -33,7 +33,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/sports'), lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/competitions-internationales'), lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: absoluteUrl('/a-propos'), lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
+    { url: absoluteUrl('/annonceurs'), lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: absoluteUrl('/contact'), lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
+    { url: absoluteUrl('/mentions-legales'), lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
+    { url: absoluteUrl('/politique-de-confidentialite'), lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
+    { url: absoluteUrl('/conditions-publicitaires'), lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
   ];
 
   const sportPages: MetadataRoute.Sitemap = sports.map(({ slug }) => ({

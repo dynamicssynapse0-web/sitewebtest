@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaMapMarkerAlt, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
-import { navigationLinks } from '@/lib/navigation';
+import { legalLinks, navigationLinks } from '@/lib/navigation';
 
 export default function Footer() {
   return (
@@ -114,6 +114,17 @@ export default function Footer() {
             </p>
           </div>
           <div className="flex flex-col items-center gap-2 sm:items-end">
+            <nav aria-label="Informations légales" className="flex flex-wrap justify-center gap-x-4 gap-y-1 sm:justify-end">
+              {legalLinks.map((lien) => (
+                <Link
+                  key={lien.href}
+                  href={lien.href}
+                  className="text-[11px] text-gray-500 transition hover:text-gray-300"
+                >
+                  {lien.label}
+                </Link>
+              ))}
+            </nav>
             <Link
               href="/admin"
               rel="nofollow"

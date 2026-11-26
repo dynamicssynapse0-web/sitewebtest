@@ -1,8 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AdSlot from '@/components/AdSlot';
 import Gallery from '@/components/Gallery';
 import WhatsAppPhotoButton from '@/components/WhatsAppPhotoButton';
+import { getAds } from '@/lib/ads';
 import {
   formatCompetitionDate,
   getInternationalCompetitionBySlug,
@@ -32,7 +34,10 @@ export async function generateMetadata({ params }) {
 
 export default async function InternationalCompetitionPage({ params }) {
   const { slug } = await params;
-  const competition = await getInternationalCompetitionBySlug(slug);
+  const [competition, sponsors] = await Promise.all([
+    getInternationalCompetitionBySlug(slug),
+    getAds('competition'),
+  ]);
 
   if (!competition) notFound();
 
@@ -95,6 +100,14 @@ export default async function InternationalCompetitionPage({ params }) {
             {competition.content}
           </p>
         )}
+
+        {sponsors.length > 0 ? (
+          <div className="mb-10 flex flex-wrap gap-3">
+            {sponsors.map((ad) => (
+              <AdSlot key={ad.id} ad={ad} variant="presentation" />
+            ))}
+          </div>
+        ) : null}
 
         <div className="mb-6 flex flex-col gap-4 border-b border-white/15 pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

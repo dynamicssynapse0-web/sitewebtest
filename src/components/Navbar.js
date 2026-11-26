@@ -7,6 +7,7 @@ import { navigationLinks } from '@/lib/navigation';
 
 const SPORT_HREF = '/sports';
 const COMPETITIONS_HREF = '/competitions-internationales';
+const ANNONCEUR_HREF = '/annonceurs';
 
 export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
   const [menuOuvert, setMenuOuvert] = useState(false);
@@ -176,6 +177,18 @@ export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
       );
     }
 
+    if (lien.href === ANNONCEUR_HREF) {
+      return (
+        <Link
+          key={lien.href}
+          href={lien.href}
+          className="whitespace-nowrap rounded-full bg-red-600 px-4 py-2 text-white shadow-md transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+        >
+          Annonceurs
+        </Link>
+      );
+    }
+
     return (
       <Link
         key={lien.href}
@@ -302,6 +315,19 @@ export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
       );
     }
 
+    if (lien.href === ANNONCEUR_HREF) {
+      return (
+        <Link
+          key={lien.href}
+          href={lien.href}
+          onClick={fermerMenus}
+          className="my-2 block rounded-full bg-red-600 px-5 py-3 text-center font-bold text-white transition hover:bg-red-700"
+        >
+          Annonceurs & partenaires
+        </Link>
+      );
+    }
+
     return (
       <Link
         key={lien.href}
@@ -337,13 +363,13 @@ export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
           </div>
         </Link>
 
-        <div className="hidden md:flex gap-5 text-sm font-medium items-center">
+        <div className="hidden lg:flex gap-5 text-sm font-medium items-center">
           {navigationLinks.map(renderDesktopLink)}
         </div>
 
         <button
           type="button"
-          className="md:hidden p-2 text-3xl leading-none"
+          className="lg:hidden p-2 text-3xl leading-none"
           onClick={() => setMenuOuvert((open) => !open)}
           aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOuvert}
@@ -353,7 +379,7 @@ export default function Navbar({ sportsMenu = [], competitionsMenu = [] }) {
       </div>
 
       {menuOuvert ? (
-        <div className="md:hidden border-t border-blue-900 px-4 py-3">
+        <div className="lg:hidden border-t border-blue-900 px-4 py-3">
           <div className="flex flex-col">{navigationLinks.map(renderMobileLink)}</div>
         </div>
       ) : null}

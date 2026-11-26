@@ -24,6 +24,8 @@ import {
   deleteInternationalCompetition,
   deleteSportif,
   deleteVitrine,
+  saveAd,
+  deleteAd,
   saveCategorySport,
   saveEvent,
   saveImagesSport,
@@ -42,6 +44,14 @@ const categoryDisciplineOptions = CATEGORY_DISCIPLINES.map((discipline) => ({
   value: discipline,
   label: discipline,
 }));
+
+const adPlacementOptions = [
+  { value: 'accueil', label: 'Bandeau accueil' },
+  { value: 'carte', label: 'Carte sponsorisée (accueil)' },
+  { value: 'partenaires', label: 'Logos partenaires (tout le site)' },
+  { value: 'evenement', label: 'Sponsor d’événement' },
+  { value: 'competition', label: 'Sponsor de compétition' },
+];
 
 const SECTIONS = [
   {
@@ -161,6 +171,44 @@ const SECTIONS = [
       { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
     ],
   },
+  {
+    key: 'ads',
+    label: 'Publicité & partenaires',
+    hint: 'ads · bandeaux, cartes et logos',
+    icon: '📢',
+    multiple: false,
+    fields: [
+      {
+        name: 'title',
+        label: 'Titre de la campagne',
+        placeholder: 'Solde de rentrée — CAN 2027',
+        required: true,
+      },
+      {
+        name: 'advertiser',
+        label: 'Nom de l’annonceur',
+        placeholder: 'Nom de la marque',
+      },
+      {
+        name: 'placement',
+        label: 'Emplacement',
+        type: 'select',
+        options: adPlacementOptions,
+        required: true,
+      },
+      {
+        name: 'link_url',
+        label: 'Lien de destination',
+        type: 'url',
+        placeholder: 'https://exemple.com',
+        required: true,
+      },
+      { name: 'date_debut', label: 'Date de début', type: 'date' },
+      { name: 'date_fin', label: 'Date de fin', type: 'date' },
+      { name: 'active', label: 'Campagne active', type: 'checkbox' },
+      { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
+    ],
+  },
 ];
 
 // Plusieurs rubriques publient plusieurs fiches sous un même titre (CAN 2017,
@@ -211,7 +259,8 @@ function emptyForm(section) {
     cover_image: '',
   };
   section.fields.forEach((field) => {
-    form[field.name] = field.type === 'checkbox' ? false : '';
+    form[field.name] =
+      field.type === 'checkbox' ? section.key === 'ads' && field.name === 'active' : '';
   });
   return form;
 }
@@ -220,7 +269,7 @@ function rowToForm(section, row) {
   const safeRow =
     row && typeof row === 'object' && !Array.isArray(row) ? row : {};
   const form = emptyForm(section);
-  const hasCover = ['images_sport', 'categories_sport', 'international'].includes(
+  const hasCover = ['images_sport', 'categories_sport', 'international', 'ads'].includes(
     section.key
   );
   const fallbackTitle =
@@ -324,6 +373,19 @@ function existingOptions(section, items) {
     }));
   }
 
+  if (section.key === 'ads') {
+    return (items.ads || []).map((row) => ({
+      value: existingKey(row),
+      label: [
+        safeText(row.title) || 'Sans titre',
+        safeText(row.advertiser),
+        adPlacementOptions.find((option) => option.value === row.placement)?.label,
+      ]
+        .filter(Boolean)
+        .join(' — '),
+    }));
+  }
+
   if (section.key !== 'images_sport') {
     return (items[section.key] || []).map((row) => ({
       value: existingKey(row),
@@ -362,13 +424,27 @@ function actionsFor(key) {
     };
   }
   if (key === 'sportif') return { save: saveSportif, remove: deleteSportif };
+  if (key === 'ads') return { save: saveAd, remove: deleteAd };
   if (key === 'moment_fort' || key === 'portrait_exclusif') {
     return { save: saveVitrine, remove: deleteVitrine };
   }
   return { save: saveEvent, remove: deleteEvent };
 }
 
-function itemSubtitle(section, row) {
+function itemSubtitle(section, row, clicks = 0) {
+  if (section.key === 'ads') {
+    const placement = adPlacementOptions.find(
+      (option) => option.value === row.placement
+    )?.label;
+    return [
+      safeText(row.advertiser),
+      placement,
+      row.active === false ? 'en pause' : '',
+      `${Number(clicks) || 0} clic${Number(clicks) > 1 ? 's' : ''}`,
+    ]
+      .filter(Boolean)
+      .join(' — ');
+  }
   if (section.key === 'images_sport') {
     const count = normalizeImages(parseImagesField(row.images ?? row.photos)).length;
     return [safeText(row.description), count ? `${count} photo${count > 1 ? 's' : ''}` : '']
@@ -808,7 +884,8 @@ export default function AdminDashboard({ email, initial }) {
       const isImagesSport = activeSection.key === 'images_sport';
       const isCategorySport = activeSection.key === 'categories_sport';
       const isInternational = activeSection.key === 'international';
-      const hasCover = isImagesSport || isCategorySport || isInternational;
+      const isAd = activeSection.key === 'ads';
+      const hasCover = isImagesSport || isCategorySport || isInternational || isAd;
       const uploadTitle = isCategorySport
         ? String(form.sous_discipline || '').trim()
         : form.title;
@@ -822,13 +899,33 @@ export default function AdminDashboard({ email, initial }) {
         }
       }
 
-      const uploaded = await uploadFiles(activeSection, uploadTitle);
+      if (isAd) {
+        if (!form.placement) {
+          throw new Error('Choisissez un emplacement publicitaire.');
+        }
+        if (!form.link_url) {
+          throw new Error('Renseignez le lien de destination.');
+        }
+        let destination;
+        try {
+          destination = new URL(form.link_url);
+        } catch {
+          throw new Error('Le lien de destination n’est pas une URL valide.');
+        }
+        if (!['http:', 'https:'].includes(destination.protocol)) {
+          throw new Error('Seuls les liens http(s) sont acceptés.');
+        }
+      }
+
+      const uploaded = isAd ? [] : await uploadFiles(activeSection, uploadTitle);
       const galleryLimit =
         isCategorySport || isInternational
           ? MAX_CATEGORY_IMAGES
-          : activeSection.multiple
-            ? 30
-            : 1;
+          : isAd
+            ? 0
+            : activeSection.multiple
+              ? 30
+              : 1;
       const allImages = [...(form._images || []), ...uploaded].slice(
         0,
         galleryLimit
@@ -836,7 +933,7 @@ export default function AdminDashboard({ email, initial }) {
       const coverImage = hasCover
         ? await uploadCover(uploadTitle, activeSection.key)
         : '';
-      if ((isCategorySport || isInternational) && !coverImage) {
+      if ((isCategorySport || isInternational || isAd) && !coverImage) {
         throw new Error('Une image de couverture est obligatoire.');
       }
       const { save } = actionsFor(activeSection.key);
@@ -889,6 +986,21 @@ export default function AdminDashboard({ email, initial }) {
           content: form.content || '',
           cover_image: allImages[0]?.src || '',
           images: JSON.stringify(allImages),
+        };
+      } else if (isAd) {
+        payload = {
+          id: editingId,
+          slug: form.slug || '',
+          title: form.title,
+          advertiser: form.advertiser || '',
+          placement: form.placement,
+          link_url: form.link_url,
+          image: coverImage,
+          alt: String(form._alt || '').trim() || `Publicité ${form.title}`,
+          date_debut: form.date_debut || '',
+          date_fin: form.date_fin || '',
+          active: Boolean(form.active),
+          ordre: Number(form.ordre) || 0,
         };
       } else if (activeSection.key === 'sportif') {
         payload = {
@@ -1124,7 +1236,11 @@ export default function AdminDashboard({ email, initial }) {
                             : safeText(row.title) || 'Sans titre'}
                         </p>
                         <p className="mt-1 break-words text-xs text-gray-500">
-                          {itemSubtitle(activeSection, row)}
+                          {itemSubtitle(
+                            activeSection,
+                            row,
+                            (items.adClicks || {})[row.id]
+                          )}
                         </p>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-2">
@@ -1171,6 +1287,8 @@ export default function AdminDashboard({ email, initial }) {
                         ? 'Choisir une catégorie existante à modifier…'
                         : activeSection.key === 'international'
                           ? 'Choisir une grande compétition existante à modifier…'
+                          : activeSection.key === 'ads'
+                          ? 'Choisir une campagne existante à modifier…'
                           : ['moment_fort', 'portrait_exclusif'].includes(activeSection.key)
                           ? 'Choisir un élément existant pour le modifier ou ajouter une photo…'
                           : 'Choisir un élément existant pour lui ajouter des photos…'}
@@ -1195,7 +1313,9 @@ export default function AdminDashboard({ email, initial }) {
                         ? 'La sélection pré-remplit la discipline, la couverture et les 4 photos maximum.'
                         : activeSection.key === 'international'
                           ? 'Choisissez « + Créer un nouveau titre » ou le bouton ci-dessous : seul le titre principal est conservé, le titre de l’événement et les photos sont vidés.'
-                          : 'La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément. « + Créer un nouveau titre » vide les champs distinctifs et les photos.'}
+                          : activeSection.key === 'ads'
+                            ? 'La sélection pré-remplit la campagne (emplacement, lien, dates et visuel). Le bouton ci-dessous remet le formulaire à zéro.'
+                            : 'La sélection pré-remplit le formulaire pour ajouter des photos ou modifier l’élément. « + Créer un nouveau titre » vide les champs distinctifs et les photos.'}
                   </p>
                   <button
                     type="button"
@@ -1244,14 +1364,16 @@ export default function AdminDashboard({ email, initial }) {
                         activeSection.key
                       )
                         ? 'Photo de couverture (obligatoire)'
-                        : 'Image principale (couverture)'}
+                        : activeSection.key === 'ads'
+                          ? 'Visuel de la publicité (obligatoire)'
+                          : 'Image principale (couverture)'}
                     </label>
                     <input
                       id="admin-cover"
                       type="file"
                       accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                       required={
-                        ['categories_sport', 'international'].includes(
+                        ['categories_sport', 'international', 'ads'].includes(
                           activeSection.key
                         ) &&
                         !form.cover_image &&
@@ -1292,26 +1414,36 @@ export default function AdminDashboard({ email, initial }) {
                       </div>
                     ) : null}
 
-                    <label
-                      htmlFor="admin-images"
-                      className="mb-2 mt-6 block text-sm font-bold text-blue-950"
-                    >
-                      {['categories_sport', 'international'].includes(
-                        activeSection.key
-                      )
-                        ? `Galerie photos (4 maximum — ${
-                            (form._images || []).length + newFiles.length
-                          }/4)`
-                        : 'Images secondaires (plusieurs possibles)'}
-                    </label>
-                    <input
-                      id="admin-images"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                      multiple
-                      onChange={handleFiles}
-                      className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
-                    />
+                    {activeSection.key !== 'ads' ? (
+                      <>
+                        <label
+                          htmlFor="admin-images"
+                          className="mb-2 mt-6 block text-sm font-bold text-blue-950"
+                        >
+                          {['categories_sport', 'international'].includes(
+                            activeSection.key
+                          )
+                            ? `Galerie photos (4 maximum — ${
+                                (form._images || []).length + newFiles.length
+                              }/4)`
+                            : 'Images secondaires (plusieurs possibles)'}
+                        </label>
+                        <input
+                          id="admin-images"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                          multiple
+                          onChange={handleFiles}
+                          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-full file:border-0 file:bg-blue-900 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-red-600"
+                        />
+                      </>
+                    ) : (
+                      <p className="mt-5 rounded-xl bg-blue-50 p-4 text-xs leading-6 text-blue-900">
+                        Une seule image par publicité. La campagne s’affiche
+                        uniquement pendant la période définie et si le
+                        bouton « Campagne active » est coché.
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>

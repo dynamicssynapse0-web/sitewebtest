@@ -1,9 +1,11 @@
+import AdSlot from '@/components/AdSlot';
 import Hero from '@/components/Hero';
 import EventCard from '@/components/EventCard';
 import ExclusivePortraits from '@/components/ExclusivePortraits';
 import MomentFortSection from '@/components/MomentFortSection';
 import ImagesSportSection from '@/components/ImagesSportSection';
 import SportifsDeLaSemaine from '@/components/SportifsDeLaSemaine';
+import { getAds } from '@/lib/ads';
 import { getAllEvents } from '@/lib/events';
 import { getImagesSportDisciplines } from '@/lib/imagesSport';
 import { getAllInternationalCompetitions, formatCompetitionDate } from '@/lib/internationalCompetitions';
@@ -23,6 +25,8 @@ export default async function Home() {
     momentsForts,
     portraitsExclusifs,
     imagesSport,
+    adsAccueil,
+    adsCarte,
   ] = await Promise.all([
     getAllEvents(),
     getAllInternationalCompetitions(),
@@ -30,11 +34,23 @@ export default async function Home() {
     getMomentsForts(),
     getPortraitsExclusifs(),
     getImagesSportDisciplines(),
+    getAds('accueil'),
+    getAds('carte'),
   ]);
 
   return (
     <main className="min-h-screen bg-gray-50">
       <Hero />
+
+      {adsAccueil.length > 0 ? (
+        <div className="bg-gray-50 px-4 pt-8 sm:px-6">
+          <div className="mx-auto max-w-7xl space-y-3">
+            {adsAccueil.map((ad) => (
+              <AdSlot key={ad.id} ad={ad} variant="banniere" />
+            ))}
+          </div>
+        </div>
+      ) : null}
       
       <div id="evenements" className="max-w-7xl mx-auto px-4 py-16">
         
@@ -168,6 +184,15 @@ export default async function Home() {
             ))
           )}
         </div>
+
+        {adsCarte.length > 0 ? (
+          <section aria-label="Contenus sponsorisés" className="mb-20 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {adsCarte.map((ad) => (
+              <AdSlot key={ad.id} ad={ad} variant="carte" />
+            ))}
+          </section>
+        ) : null}
+
         {/* Galerie : moments forts */}
         <MomentFortSection items={momentsForts} />
 

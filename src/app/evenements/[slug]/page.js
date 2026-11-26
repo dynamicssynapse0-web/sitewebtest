@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import AdSlot from '@/components/AdSlot';
 import Gallery from '@/components/Gallery';
+import { getAds } from '@/lib/ads';
 import { formatEventDate, getEventBySlug } from '@/lib/events';
 import { pageMetadata, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
@@ -27,7 +29,10 @@ export async function generateMetadata({ params }) {
 
 export default async function EventPage({ params }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const [event, sponsors] = await Promise.all([
+    getEventBySlug(slug),
+    getAds('evenement'),
+  ]);
 
   if (!event) {
     return <div className="p-10 text-center">Événement non trouvé</div>;
@@ -74,6 +79,14 @@ export default async function EventPage({ params }) {
             <p>&quot;{event.content || event.excerpt}&quot;</p>
           </div>
         </header>
+
+        {sponsors.length > 0 ? (
+          <div className="mb-10 flex flex-wrap gap-3">
+            {sponsors.map((ad) => (
+              <AdSlot key={ad.id} ad={ad} variant="presentation" />
+            ))}
+          </div>
+        ) : null}
 
         <h2 className="text-2xl font-bold mb-8 text-white border-b border-gray-600 pb-4">
           Galerie Photos ({photos.length})

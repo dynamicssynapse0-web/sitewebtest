@@ -14,6 +14,9 @@ const PROTECTED_SELECTOR = [
 
 function isProtectedTarget(target) {
   if (!(target instanceof Element)) return false;
+  // Les visuels publicitaires ne sont pas des photos à vendre : ils ne doivent
+  // pas déclencher la modale « Image protégée » (ni être rendus non déplaçables).
+  if (target.closest('[data-ad-creative]')) return false;
   if (target.closest(PROTECTED_SELECTOR)) return true;
 
   // Conteneurs utilisant une photo en background-image.
@@ -25,6 +28,7 @@ function isProtectedTarget(target) {
 // au message WhatsApp.
 function findImageSrc(target) {
   if (!(target instanceof Element)) return '';
+  if (target.closest('[data-ad-creative]')) return '';
   const image = target.closest('img');
   if (image) return image.currentSrc || image.src || '';
   const container = target.closest('[data-image-protect], .yarl__slide, figure, picture');
@@ -45,6 +49,7 @@ export default function ImageProtection() {
   useEffect(() => {
     function markImages(root = document) {
       root.querySelectorAll('img').forEach((image) => {
+        if (image.closest('[data-ad-creative]')) return;
         if (image.getAttribute('draggable') !== 'false') {
           image.setAttribute('draggable', 'false');
         }
