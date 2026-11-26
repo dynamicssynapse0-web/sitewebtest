@@ -201,10 +201,10 @@ export default function SportifsDeLaSemaine({ sportifs = [] }) {
 
             <div className="mt-8 text-center">
               <Link
-                href="/galerie"
+                href="/sportifs-semaine"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:border-red-400 hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
               >
-                Voir tous les portraits
+                Voir tous les sportifs
                 <span aria-hidden="true">→</span>
               </Link>
             </div>

@@ -32,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/galerie'), lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: absoluteUrl('/sports'), lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/competitions-internationales'), lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
+    { url: absoluteUrl('/sportifs-semaine'), lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: absoluteUrl('/a-propos'), lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
     { url: absoluteUrl('/annonceurs'), lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: absoluteUrl('/contact'), lastModified: now, changeFrequency: 'yearly', priority: 0.5 },

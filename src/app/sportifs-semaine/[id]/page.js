@@ -50,7 +50,7 @@ export default async function SportifSemainePage({ params }) {
 
         <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <Link
-            href="/#sportifs-semaine"
+            href="/sportifs-semaine"
             className="inline-flex items-center gap-2 text-sm font-semibold text-blue-100/80 transition hover:text-white"
           >
             ← Retour aux sportifs de la semaine
