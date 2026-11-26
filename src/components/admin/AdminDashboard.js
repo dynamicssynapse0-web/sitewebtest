@@ -50,8 +50,8 @@ const adPlacementOptions = [
   { value: 'accueil', label: 'Bandeau accueil' },
   { value: 'carte', label: 'Carte sponsorisée (accueil)' },
   { value: 'partenaires', label: 'Logos partenaires (tout le site)' },
-  { value: 'evenement', label: 'Sponsor d’événement' },
-  { value: 'competition', label: 'Sponsor de compétition' },
+  { value: 'evenement', label: 'Sponsor d’événement (fiche événement)' },
+  { value: 'competition', label: 'Sponsor de compétition (fiche compétition)' },
 ];
 
 const SECTIONS = [
@@ -206,8 +206,18 @@ const SECTIONS = [
         hint: 'Vous pouvez saisir www.exemple.com : le https:// est ajouté automatiquement.',
         required: true,
       },
-      { name: 'date_debut', label: 'Date de début', type: 'date' },
-      { name: 'date_fin', label: 'Date de fin', type: 'date' },
+      {
+        name: 'date_debut',
+        label: 'Date de début',
+        type: 'date',
+        hint: 'Laissez vide pour diffuser immédiatement. Une date future programme la campagne.',
+      },
+      {
+        name: 'date_fin',
+        label: 'Date de fin',
+        type: 'date',
+        hint: 'Laissez vide pour une diffusion sans limite.',
+      },
       { name: 'active', label: 'Campagne active', type: 'checkbox' },
       { name: 'ordre', label: 'Ordre d’affichage', type: 'number', placeholder: '1' },
     ],
@@ -439,10 +449,21 @@ function itemSubtitle(section, row, clicks = 0) {
     const placement = adPlacementOptions.find(
       (option) => option.value === row.placement
     )?.label;
+    const today = new Date().toISOString().slice(0, 10);
+    const debut = toIsoDate(row.date_debut);
+    const fin = toIsoDate(row.date_fin);
+    const statut =
+      row.active === false
+        ? 'en pause'
+        : debut && debut > today
+          ? `programmée le ${debut}`
+          : fin && fin < today
+            ? 'terminée'
+            : 'en ligne';
     return [
       safeText(row.advertiser),
       placement,
-      row.active === false ? 'en pause' : '',
+      statut,
       `${Number(clicks) || 0} clic${Number(clicks) > 1 ? 's' : ''}`,
     ]
       .filter(Boolean)

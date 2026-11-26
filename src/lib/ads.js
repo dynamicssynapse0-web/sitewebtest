@@ -6,8 +6,8 @@ export const AD_PLACEMENTS = [
   { value: 'accueil', label: 'Bandeau accueil' },
   { value: 'carte', label: 'Carte sponsorisée (accueil)' },
   { value: 'partenaires', label: 'Logos partenaires (tout le site)' },
-  { value: 'evenement', label: 'Sponsor d’événement' },
-  { value: 'competition', label: 'Sponsor de compétition' },
+  { value: 'evenement', label: 'Sponsor d’événement (fiche événement)' },
+  { value: 'competition', label: 'Sponsor de compétition (fiche compétition)' },
 ];
 
 export function isAdPlacement(value) {
