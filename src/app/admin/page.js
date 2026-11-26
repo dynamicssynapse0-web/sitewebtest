@@ -4,6 +4,7 @@ import AdminDashboard from '@/components/admin/AdminDashboard';
 import LogoutButton from '@/components/admin/LogoutButton';
 import { getAdminContext } from '@/lib/supabase/admin';
 import { resolveArticlesTable } from '@/lib/supabase/content';
+import { resolveTable } from '@/lib/supabase/tables';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { safeText, toPlainJson, toPlainRows } from '@/lib/supabase/serialization';
 import { hasValidTitle } from '@/lib/supabase/records';
@@ -56,7 +57,21 @@ async function fetchAllItems() {
     const supabase = await getServerSupabase();
     if (!supabase) return EMPTY_ITEMS;
 
-    const articlesTable = await resolveArticlesTable(supabase);
+    const [
+      articlesTable,
+      imagesSportTable,
+      categoriesSportTable,
+      sportifsTable,
+      vitrineTable,
+      adsTable,
+    ] = await Promise.all([
+      resolveArticlesTable(supabase),
+      resolveTable(supabase, 'images_sport'),
+      resolveTable(supabase, 'categories_sport'),
+      resolveTable(supabase, 'sportifs_semaine'),
+      resolveTable(supabase, 'vitrine_items'),
+      resolveTable(supabase, 'ads'),
+    ]);
 
     const [
       events,
@@ -83,17 +98,23 @@ async function fetchAllItems() {
           'date',
           isArticleOfType('international')
         ),
-        fetchRows(supabase, 'images_sport', {}, 'ordre', hasValidTitle),
-        fetchRows(supabase, 'categories_sport', {}, 'ordre', isCategorySportRow),
-        fetchRows(supabase, 'sportifs_semaine', {}, 'created_at'),
-        fetchRows(supabase, 'vitrine_items', { section: 'moment_fort' }, 'ordre'),
+        fetchRows(supabase, imagesSportTable, {}, 'ordre', hasValidTitle),
         fetchRows(
           supabase,
-          'vitrine_items',
+          categoriesSportTable,
+          {},
+          'ordre',
+          isCategorySportRow
+        ),
+        fetchRows(supabase, sportifsTable, {}, 'created_at'),
+        fetchRows(supabase, vitrineTable, { section: 'moment_fort' }, 'ordre'),
+        fetchRows(
+          supabase,
+          vitrineTable,
           { section: 'portrait_exclusif' },
           'ordre'
         ),
-        fetchRows(supabase, 'ads', {}, 'ordre'),
+        fetchRows(supabase, adsTable, {}, 'ordre'),
         getAdClickCounts(),
       ]);
 

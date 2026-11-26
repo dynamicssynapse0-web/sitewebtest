@@ -1,5 +1,6 @@
 import { DEFAULT_OG_IMAGE } from '@/lib/seo';
 import { getPublicSupabase } from './publicClient';
+import { resolveTable } from './tables';
 import {
   hasValidTitle,
   mergeImages,
@@ -33,6 +34,13 @@ export async function resolveArticlesTable(supabase) {
   } catch {
     return ARTICLES_TABLE;
   }
+}
+
+// Lecture d'une table du projet : résout automatiquement la version
+// _bilderfassung, avec repli sur l'ancienne table si elle n'existe pas.
+export async function fetchManagedRows(table, filters = {}, order) {
+  const supabase = getPublicSupabase();
+  return fetchRows(await resolveTable(supabase, table), filters, order);
 }
 
 export async function fetchRows(table, filters = {}, order) {
@@ -233,7 +241,7 @@ export async function getRemoteArticles(type) {
 }
 
 export async function getRemoteSportifs() {
-  const rows = await fetchRows(
+  const rows = await fetchManagedRows(
     'sportifs_semaine',
     {},
     { column: 'created_at', ascending: false }
@@ -242,7 +250,7 @@ export async function getRemoteSportifs() {
 }
 
 export async function getRemoteVitrine(section) {
-  const rows = await fetchRows(
+  const rows = await fetchManagedRows(
     'vitrine_items',
     { section },
     { column: 'ordre', ascending: true }
@@ -288,7 +296,7 @@ export function mapImagesSport(row, index = 0) {
 }
 
 export async function getRemoteImagesSport() {
-  const rows = await fetchRows(
+  const rows = await fetchManagedRows(
     'images_sport',
     {},
     { column: 'ordre', ascending: true }

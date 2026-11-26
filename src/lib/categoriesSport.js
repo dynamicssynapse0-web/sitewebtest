@@ -1,5 +1,5 @@
 import { DEFAULT_OG_IMAGE } from './seo';
-import { fetchRows, parseImagesField } from './supabase/content';
+import { fetchManagedRows, parseImagesField } from './supabase/content';
 import { mergeImages, normalizeImages, slugify } from './supabase/records';
 
 export { parseImagesField } from './supabase/content';
@@ -77,7 +77,7 @@ export function mapCategorySport(row, index = 0) {
 }
 
 export async function getAllCategoriesSport() {
-  const rows = await fetchRows(
+  const rows = await fetchManagedRows(
     'categories_sport',
     {},
     { column: 'ordre', ascending: true }

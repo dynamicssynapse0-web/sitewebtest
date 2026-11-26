@@ -1,4 +1,5 @@
 import { getPublicSupabase } from './supabase/publicClient';
+import { resolveTable } from './supabase/tables';
 import { getAllEvents } from './events';
 import { getAllInternationalCompetitions } from './internationalCompetitions';
 import { getGalleryImages } from './gallery';
@@ -16,7 +17,7 @@ export async function getMonthlyPageviews() {
     since.setUTCDate(since.getUTCDate() - 30);
 
     const { count, error } = await supabase
-      .from('site_pageviews')
+      .from(await resolveTable(supabase, 'site_pageviews'))
       .select('id', { count: 'exact', head: true })
       .gte('created_at', since.toISOString());
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPublicSupabase } from '@/lib/supabase/publicClient';
+import { resolveTable } from '@/lib/supabase/tables';
 
 export async function POST(request) {
   try {
@@ -12,11 +13,13 @@ export async function POST(request) {
     const supabase = getPublicSupabase();
     if (!supabase) return NextResponse.json({ ok: true, counted: false });
 
-    const { error } = await supabase.from('ad_clicks').insert({
-      ad_id: id,
-      placement,
-      created_at: new Date().toISOString(),
-    });
+    const { error } = await supabase
+      .from(await resolveTable(supabase, 'ad_clicks'))
+      .insert({
+        ad_id: id,
+        placement,
+        created_at: new Date().toISOString(),
+      });
 
     if (error) return NextResponse.json({ ok: false });
     return NextResponse.json({ ok: true });

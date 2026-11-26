@@ -12,6 +12,11 @@ import {
 } from '@/lib/categoriesSport';
 import { internationalCompetitionSlug } from '@/lib/internationalCompetitions';
 import { ARTICLES_TABLE, resolveArticlesTable } from '@/lib/supabase/content';
+import {
+  PROJECT_TABLE_NAMES,
+  canonicalTableName,
+  resolveTable,
+} from '@/lib/supabase/tables';
 import { slugify } from '@/lib/supabase/records';
 import { errorText, toPlainJson } from '@/lib/supabase/serialization';
 import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
@@ -19,11 +24,7 @@ import { SUPABASE_MEDIA_BUCKET } from '@/lib/supabase/config';
 const ALLOWED_TABLES = new Set([
   'articles',
   ARTICLES_TABLE,
-  'images_sport',
-  'categories_sport',
-  'sportifs_semaine',
-  'vitrine_items',
-  'ads',
+  ...PROJECT_TABLE_NAMES,
 ]);
 
 const IMAGE_COLUMNS = [
@@ -56,26 +57,27 @@ function revalidatePublicContent(row, table) {
     const paths = new Set(PUBLIC_PATHS);
     const plainRow = row && typeof row === 'object' ? row : {};
     const slug = slugify(plainRow.slug || plainRow.title);
+    const baseTable = canonicalTableName(table);
 
     // L'accueil, /sports, /galerie et toutes les pages enfants dépendent des
     // disciplines : une seule invalidation globale couvre la navigation entière.
     revalidatePath('/', 'layout');
 
-    if ((table === ARTICLES_TABLE || table === 'articles') && slug) {
+    if ((baseTable === ARTICLES_TABLE || baseTable === 'articles') && slug) {
       paths.add(
         plainRow.type === 'international'
           ? `/competitions-internationales/${slug}`
           : `/evenements/${slug}`
       );
     }
-    if (table === 'sportifs_semaine') {
+    if (baseTable === 'sportifs_semaine') {
       if (slug) paths.add(`/sportifs-semaine/${slug}`);
       if (plainRow.id) paths.add(`/sportifs-semaine/${plainRow.id}`);
     }
-    if (table === 'images_sport' && slug) {
+    if (baseTable === 'images_sport' && slug) {
       paths.add(`/sports/${slug}`);
     }
-    if (table === 'categories_sport') {
+    if (baseTable === 'categories_sport') {
       const disciplineSlug = slugify(plainRow.discipline);
       const sousDisciplineSlug = slugify(plainRow.sous_discipline);
       if (disciplineSlug && sousDisciplineSlug) {
@@ -91,6 +93,15 @@ function revalidatePublicContent(row, table) {
 
 function failure(error) {
   return { ok: false, error: errorText(error) };
+}
+
+// Les événements ont leur propre résolveur ; les autres rubriques passent par
+// le registre commun des tables _bilderfassung.
+async function resolveAnyTable(supabase, table) {
+  if (table === ARTICLES_TABLE || table === 'articles') {
+    return resolveArticlesTable(supabase);
+  }
+  return resolveTable(supabase, table);
 }
 
 async function requireAdmin() {
@@ -173,8 +184,14 @@ async function removeUnusedMedia(supabase, sources) {
   if (sources.size === 0) return [];
 
   // Une image partagée entre plusieurs contenus ne doit jamais être supprimée.
+  // On vérifie les deux versions (historique et _bilderfassung) pour ne pas
+  // effacer un visuel encore utilisé pendant la transition.
+  const resolvedTables = await Promise.all(
+    [...ALLOWED_TABLES].map((name) => resolveAnyTable(supabase, name))
+  );
+  const tablesToCheck = [...new Set(resolvedTables)];
   const results = await Promise.all(
-    [...ALLOWED_TABLES].map((name) => supabase.from(name).select('*'))
+    tablesToCheck.map((name) => supabase.from(name).select('*'))
   );
 
   const usedPaths = new Set();
@@ -246,10 +263,7 @@ async function saveItem(table, row) {
     }
 
     const supabase = await requireAdmin();
-    const targetTable =
-      table === ARTICLES_TABLE || table === 'articles'
-        ? await resolveArticlesTable(supabase)
-        : table;
+    const targetTable = await resolveAnyTable(supabase, table);
     if (!ALLOWED_TABLES.has(targetTable)) {
       throw new Error('Table non autorisée.');
     }
@@ -288,10 +302,7 @@ async function deleteItem(table, id) {
     }
 
     const supabase = await requireAdmin();
-    const targetTable =
-      table === ARTICLES_TABLE || table === 'articles'
-        ? await resolveArticlesTable(supabase)
-        : table;
+    const targetTable = await resolveAnyTable(supabase, table);
     if (!ALLOWED_TABLES.has(targetTable)) {
       throw new Error('Suppression impossible.');
     }

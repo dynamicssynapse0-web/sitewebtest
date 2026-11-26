@@ -94,7 +94,7 @@ const SECTIONS = [
   {
     key: 'images_sport',
     label: 'Images Sport',
-    hint: 'images_sport · disciplines photo',
+    hint: 'images_sport_bilderfassung · disciplines photo',
     icon: '📸',
     multiple: true,
     fields: [
@@ -111,7 +111,7 @@ const SECTIONS = [
   {
     key: 'categories_sport',
     label: 'Catégories de sport',
-    hint: 'categories_sport · menu Sport à 2 niveaux',
+    hint: 'categories_sport_bilderfassung · menu Sport à 2 niveaux',
     icon: '🏅',
     multiple: true,
     fields: [
@@ -134,7 +134,7 @@ const SECTIONS = [
   {
     key: 'sportif',
     label: 'Sportifs de la semaine',
-    hint: 'sportifs_semaine',
+    hint: 'sportifs_semaine_bilderfassung',
     icon: '🏆',
     multiple: true,
     fields: [
@@ -152,7 +152,7 @@ const SECTIONS = [
   {
     key: 'moment_fort',
     label: 'Les moments forts',
-    hint: 'vitrine_items · moment_fort',
+    hint: 'vitrine_items_bilderfassung · moment_fort',
     icon: '⚡',
     multiple: true,
     fields: [
@@ -163,7 +163,7 @@ const SECTIONS = [
   {
     key: 'portrait_exclusif',
     label: 'Portrait exclusif',
-    hint: 'vitrine_items · portrait_exclusif',
+    hint: 'vitrine_items_bilderfassung · portrait_exclusif',
     icon: '📸',
     multiple: false,
     fields: [
@@ -175,7 +175,7 @@ const SECTIONS = [
   {
     key: 'ads',
     label: 'Publicité & partenaires',
-    hint: 'ads · bandeaux, cartes et logos',
+    hint: 'ads_bilderfassung · bandeaux, cartes et logos',
     icon: '📢',
     multiple: false,
     fields: [

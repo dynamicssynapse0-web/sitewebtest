@@ -1,4 +1,5 @@
 import { getPublicSupabase } from './supabase/publicClient';
+import { resolveTable } from './supabase/tables';
 import { normalizeImages, toIsoDate } from './supabase/records';
 import { safeText, toPlainRows } from './supabase/serialization';
 
@@ -56,7 +57,7 @@ export async function getAds(placement) {
 
   try {
     const { data, error } = await supabase
-      .from('ads')
+      .from(await resolveTable(supabase, 'ads'))
       .select('*')
       .eq('placement', placement)
       .eq('active', true)
@@ -79,7 +80,7 @@ export async function getAdClickCounts() {
 
   try {
     const { data, error } = await supabase
-      .from('ad_clicks')
+      .from(await resolveTable(supabase, 'ad_clicks'))
       .select('ad_id')
       .limit(5000);
 
