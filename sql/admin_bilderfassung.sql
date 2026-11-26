@@ -95,3 +95,51 @@ on conflict (id) do update set
   decide_le = excluded.decide_le,
   demande_le = excluded.demande_le,
   photo_path = excluded.photo_path;
+
+-- 3. Administrateur principal de ce projet ------------------------------------
+-- Inséré explicitement pour garantir l'accès à /admin, indépendamment de la
+-- copie depuis `profiles` ci-dessus. Re-jouable sans doublon grâce au ON CONFLICT.
+insert into public.admin_bilderfassung (
+  id, email, prenom, nom, media, numero_carte, carte_path, statut, role,
+  motif_refus, nouvelle_soumission, ville, pays, telephone, decide_par,
+  decide_le, demande_le, created_at, photo_path
+)
+values (
+  'de65fd47-3bcc-4fa2-b338-ad8e03683aae',
+  'skaigom@gmail.com',
+  '',
+  '',
+  '',
+  null,
+  null,
+  'actif',
+  'admin',
+  null,
+  false,
+  'bruxelle',
+  'Belgique',
+  null,
+  null,
+  null,
+  '2026-11-20 07:38:18.570248+00'::timestamptz,
+  '2026-11-20 07:38:18.570248+00'::timestamptz,
+  'de65fd47-3bcc-4fa2-b338-ad8e03683aae/8ca64c4d-37ba-4059-b334-56d700a391a9.jpg'
+)
+on conflict (id) do update set
+  email = excluded.email,
+  statut = excluded.statut,
+  role = excluded.role,
+  prenom = excluded.prenom,
+  nom = excluded.nom,
+  media = excluded.media,
+  numero_carte = excluded.numero_carte,
+  carte_path = excluded.carte_path,
+  motif_refus = excluded.motif_refus,
+  nouvelle_soumission = excluded.nouvelle_soumission,
+  ville = excluded.ville,
+  pays = excluded.pays,
+  telephone = excluded.telephone,
+  decide_par = excluded.decide_par,
+  decide_le = excluded.decide_le,
+  demande_le = excluded.demande_le,
+  photo_path = excluded.photo_path;
